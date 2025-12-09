@@ -372,24 +372,21 @@ RETURNS TRIGGER AS $$
 DECLARE
     year_part VARCHAR(4);
     sequence_part VARCHAR(6);
-    type_prefix VARCHAR(3);
+    next_number INTEGER;
 BEGIN
     year_part := TO_CHAR(NEW.scheduled_date, 'YYYY');
     
-    -- Get sequence number for the year
-    SELECT LPAD((COUNT(*) + 1)::TEXT, 6, '0')
-    INTO sequence_part
+    -- Get the highest sequence number for the year from all visit codes
+    SELECT COALESCE(MAX(CAST(SUBSTRING(visit_code FROM '\\d{6}$') AS INTEGER)), 0) + 1
+    INTO next_number
     FROM visits
-    WHERE EXTRACT(YEAR FROM scheduled_date) = EXTRACT(YEAR FROM NEW.scheduled_date);
+    WHERE visit_code LIKE 'GC-' || year_part || '-%';
     
-    -- Add type prefix
-    CASE NEW.visit_type
-        WHEN 'walk_in' THEN type_prefix := 'WI';
-        WHEN 'recurring' THEN type_prefix := 'RC';
-        ELSE type_prefix := '';
-    END CASE;
+    -- Format as 6-digit padded number
+    sequence_part := LPAD(next_number::TEXT, 6, '0');
     
-    NEW.visit_code := 'GC-' || year_part || '-' || type_prefix || sequence_part;
+    -- Standard format: GC-YYYY-XXXXXX (no type prefix)
+    NEW.visit_code := 'GC-' || year_part || '-' || sequence_part;
     
     RETURN NEW;
 END;

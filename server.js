@@ -14,6 +14,14 @@ app.use(express.static(__dirname));
 app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  // Prevent caching of HTML files to avoid serving stale code
+  if (req.path.endsWith('.html') || req.path === '/') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  
   next();
 });
 
@@ -90,6 +98,42 @@ app.get('/api/executives', async (req, res) => {
   }
 });
 
+// Generate next visit code
+app.get('/api/visits/generate-code', async (req, res) => {
+  try {
+    const year = new Date().getFullYear();
+    
+    // Get the highest sequence number for current year
+    const result = await db.query(`
+      SELECT visit_code 
+      FROM visits 
+      WHERE visit_code LIKE $1
+      ORDER BY visit_code DESC 
+      LIMIT 1
+    `, [`GC-${year}-%`]);
+    
+    let nextNumber = 1;
+    
+    if (result.rows.length > 0) {
+      // Extract number from code like "GC-2025-000123" or "GC-2025-WI000123"
+      const lastCode = result.rows[0].visit_code;
+      const match = lastCode.match(/(\d{6})$/);
+      if (match) {
+        nextNumber = parseInt(match[1]) + 1;
+      }
+    }
+    
+    // Format: GC-YYYY-XXXXXX
+    const code = `GC-${year}-${String(nextNumber).padStart(6, '0')}`;
+    
+    console.log('Generated visit code:', code);
+    res.json({ code });
+  } catch (error) {
+    console.error('Error generating visit code:', error);
+    res.status(500).json({ error: 'Failed to generate visit code' });
+  }
+});
+
 // Create new visit
 app.post('/api/visits', async (req, res) => {
   let { visitor, executive_id, date, time_from, time_to, purpose, visit_type = 'scheduled' } = req.body;
@@ -136,25 +180,23 @@ app.post('/api/visits', async (req, res) => {
       console.log('Created new visitor:', visitorId);
     }
 
-    // Generate visit code
-    const code = 'GC' + Date.now().toString().slice(-8);
-
     // All visits require approval (including walk-ins)
     const approvalStatus = 'pending';
 
-    console.log('Inserting visit with code:', code, 'type:', visit_type, 'approval:', approvalStatus);
+    console.log('Inserting visit with type:', visit_type, 'approval:', approvalStatus);
 
-    // Insert visit
+    // Insert visit without code - let database trigger generate it
     const visitResult = await db.query(
-      `INSERT INTO visits (visit_code, visitor_id, executive_id, scheduled_date, scheduled_time_from, scheduled_time_to, purpose_of_visit, visit_type, visit_status, approval_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'scheduled', $9)
+      `INSERT INTO visits (visitor_id, executive_id, scheduled_date, scheduled_time_from, scheduled_time_to, purpose_of_visit, visit_type, visit_status, approval_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'scheduled', $8)
        RETURNING *`,
-      [code, visitorId, executive_id, date, time_from, time_to, purpose, visit_type, approvalStatus]
+      [visitorId, executive_id, date, time_from, time_to, purpose, visit_type, approvalStatus]
     );
 
     await db.query('COMMIT');
 
     console.log('Visit created successfully:', visitResult.rows[0].id);
+    console.log('Visit code from insert:', visitResult.rows[0].visit_code);
 
     // Get complete visit info
     const completeVisit = await db.query(`
@@ -171,6 +213,8 @@ app.post('/api/visits', async (req, res) => {
       JOIN users u ON e.user_id = u.id
       WHERE v.id = $1
     `, [visitResult.rows[0].id]);
+
+    console.log('Visit code from query:', completeVisit.rows[0].visit_code);
 
     res.status(201).json({
       success: true,

@@ -792,14 +792,31 @@
                     
                     await new Promise(resolve => setTimeout(resolve, 500));
                     
-                    const canvas = await html2canvas(passRef.current, {
+                    // Clone the pass element to render it without parent constraints
+                    const passElement = passRef.current;
+                    const clone = passElement.cloneNode(true);
+                    
+                    // Create temporary container
+                    const tempContainer = document.createElement('div');
+                    tempContainer.style.position = 'absolute';
+                    tempContainer.style.left = '-9999px';
+                    tempContainer.style.top = '0';
+                    tempContainer.style.width = 'auto';
+                    tempContainer.style.height = 'auto';
+                    tempContainer.style.overflow = 'visible';
+                    tempContainer.appendChild(clone);
+                    document.body.appendChild(tempContainer);
+                    
+                    const canvas = await html2canvas(clone, {
                         backgroundColor: '#ffffff',
                         scale: 2,
                         useCORS: true,
                         allowTaint: true,
-                        width: 400,
-                        height: 600
+                        logging: false
                     });
+                    
+                    // Remove temporary container
+                    document.body.removeChild(tempContainer);
                     
                     const dataURL = canvas.toDataURL('image/png');
                     const link = document.createElement('a');
