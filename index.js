@@ -1,21 +1,33 @@
-// Simple Express server for Vercel deployment
+// Vercel serverless function handler
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 
-// Serve static files
-app.use(express.static(__dirname));
+// Serve static files from root directory
+app.use(express.static(path.join(__dirname)));
 
-// Serve index.html for the root route
+// Root route - serve index.html
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  const indexPath = path.join(__dirname, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('index.html not found');
+  }
 });
 
-// Catch all other routes and serve index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+// Serve static assets
+app.get('/:filename', (req, res) => {
+  const filePath = path.join(__dirname, req.params.filename);
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    // If file doesn't exist, serve index.html (for SPA routing)
+    res.sendFile(path.join(__dirname, 'index.html'));
+  }
 });
 
-// Export for Vercel
+// For Vercel serverless deployment
 module.exports = app;
