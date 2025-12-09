@@ -235,8 +235,8 @@
                 const result = await response.json();
                 console.log('=== Visit Save Response ===');
                 console.log('Full result:', result);
-                console.log('Visit code from API:', result.visit?.visit_code);
-                console.log('Visit ID from API:', result.visit?.id);
+                console.log('Visit code from API:', result.visit_code);
+                console.log('Visit ID from API:', result.id);
                 
                 return result;
             } catch (e) {
@@ -971,28 +971,28 @@ Visit Management System`;
                     
                     console.log('=== Staff Dashboard - After Save ===');
                     console.log('Result object:', result);
-                    console.log('Result.visit:', result?.visit);
-                    console.log('Result.visit.visit_code:', result?.visit?.visit_code);
+                    console.log('Result.visit_code:', result?.visit_code);
                     console.log('Original visit.code before spread:', visit.code);
                     
                     // Create new visit object with database-generated code
-                    if (result && result.visit && result.visit.visit_code) {
+                    // API returns visit object directly with visit_code property
+                    if (result && result.visit_code) {
                         const visitWithCode = {
                             ...visit,
-                            code: result.visit.visit_code,
-                            id: result.visit.id
+                            code: result.visit_code,
+                            id: result.id
                         };
                         
                         // Freeze the code to catch any modifications
                         Object.defineProperty(visitWithCode, 'code', {
-                            value: result.visit.visit_code,
+                            value: result.visit_code,
                             writable: false,
                             configurable: false
                         });
                         
                         console.log('Created visitWithCode object:', visitWithCode);
                         console.log('visitWithCode.code AFTER creation:', visitWithCode.code);
-                        console.log('Verify: result.visit.visit_code was:', result.visit.visit_code);
+                        console.log('Verify: result.visit_code was:', result.visit_code);
                         console.log('=== ABOUT TO SHOW PASS WITH CODE:', visitWithCode.code, '===');
                         console.log('Type check - code is:', typeof visitWithCode.code, visitWithCode.code);
                         
@@ -1638,14 +1638,15 @@ Visit Management System`;
                     const result = await saveVisit(visit);
                     
                     console.log('=== Security Guard Dashboard - After Save ===');
-                    console.log('Result.visit.visit_code:', result?.visit?.visit_code);
+                    console.log('Result.visit_code:', result?.visit_code);
                     
                     // Create new visit object with database-generated code
-                    if (result && result.visit && result.visit.visit_code) {
+                    // API returns visit object directly with visit_code property
+                    if (result && result.visit_code) {
                         const visitWithCode = {
                             ...visit,
-                            code: result.visit.visit_code,
-                            id: result.visit.id
+                            code: result.visit_code,
+                            id: result.id
                         };
                         console.log('Security Guard - visitWithCode.code:', visitWithCode.code);
                         
@@ -2415,14 +2416,15 @@ Visit Management System`;
                     const result = await saveVisit(visit);
                     
                     console.log('=== Receptionist Dashboard - After Save ===');
-                    console.log('Result.visit.visit_code:', result?.visit?.visit_code);
+                    console.log('Result.visit_code:', result?.visit_code);
                     
                     // Create new visit object with database-generated code
-                    if (result && result.visit && result.visit.visit_code) {
+                    // API returns visit object directly with visit_code property
+                    if (result && result.visit_code) {
                         const visitWithCode = {
                             ...visit,
-                            code: result.visit.visit_code,
-                            id: result.visit.id
+                            code: result.visit_code,
+                            id: result.id
                         };
                         console.log('Receptionist - visitWithCode.code:', visitWithCode.code);
                         
