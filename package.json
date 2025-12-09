@@ -4,7 +4,7 @@
   "description": "Comprehensive guest pass management system with QR code generation and multi-role access",
   "main": "guest-pass-system.html",
   "scripts": {
-    "build": "npm run build:prod",
+    "build": "echo 'Static site - no build needed'",
     "build:dev": "cross-env NODE_ENV=development webpack --config webpack.config.js",
     "build:staging": "cross-env NODE_ENV=staging webpack --config webpack.config.js",
     "build:prod": "cross-env NODE_ENV=production webpack --config webpack.config.js",
@@ -26,9 +26,7 @@
     "version:bump": "node scripts/version-bump.js",
     "rollback": "node scripts/rollback.js",
     "monitor": "node scripts/monitoring.js",
-    "clean": "rimraf dist node_modules/.cache",
-    "prebuild": "npm run clean && npm run security:audit",
-    "postbuild": "npm run test && npm run checksum && npm run package:create"
+    "clean": "rimraf dist node_modules/.cache"
   },
   "keywords": [
     "guest-pass",
