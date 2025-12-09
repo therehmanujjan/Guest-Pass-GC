@@ -55,10 +55,13 @@ server-prod.js
 server-shared-prod.js
 shared-server.js
 config/
-api/
+api/server.js
+api/package.json
+api/tsconfig.json
+api/prisma/
 
-# Keep index.js for Vercel entrypoint
-!index.js
+# Keep api/index.js for Vercel serverless function
+!api/index.js
 
 # Old versions and debugging files
 guest-pass-system-*.html
