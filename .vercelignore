@@ -4,16 +4,16 @@ npm-debug.log
 yarn-error.log
 
 # Environment files (will be set in Vercel dashboard)
-.env
 .env.local
 .env.development
 .env.staging
-.env.production
 
 # Testing
 coverage
 *.test.js
 tests/
+test-*.html
+*-test.html
 
 # Documentation
 *.md
@@ -35,7 +35,6 @@ package/
 
 # Git
 .git
-.gitignore
 
 # Scripts (not needed for production)
 scripts/
@@ -48,4 +47,39 @@ docker-compose.yml
 # Deployment scripts
 deploy.sh
 deploy-production.sh
+deploy-shared.sh
+
+# Server files (backend not used on Vercel)
+server.js
+server-prod.js
+server-shared-prod.js
+shared-server.js
+config/
+api/
+
+# Old versions and debugging files
+guest-pass-system-*.html
+complete-*.html
+debug-*.html
+brute-force-*.html
+fail-safe-*.html
+final-*.html
+force-*.html
+qr-*.html
+shared-*.html
+simple-*.html
+ultimate-*.html
+working-*.html
+
+# Keep only essential files
+!index.html
+!public/
+!*.min.js
+!babel.min.js
+!html2canvas.min.js
+!jsQR.js
+!qrcode.min.js
+!react.production.min.js
+!react-dom.production.min.js
+!tailwindcss.js
 deploy-shared.sh
