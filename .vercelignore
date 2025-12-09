@@ -3,21 +3,14 @@ node_modules
 npm-debug.log
 yarn-error.log
 
-# Environment files (will be set in Vercel dashboard)
+# Environment files
 .env.local
 .env.development
 .env.staging
 
 # Testing
 coverage
-*.test.js
 tests/
-test-*.html
-*-test.html
-
-# Documentation
-*.md
-!README.md
 
 # Build artifacts
 dist/
@@ -26,66 +19,50 @@ build/
 # IDE
 .vscode
 .idea
-*.swp
-*.swo
-
-# Staging and package directories
-staging/
-package/
 
 # Git
 .git
 
-# Scripts (not needed for production)
+# Scripts and docs
 scripts/
+*.md
+!README.md
+
+# Staging and package
+staging/
+package/
 
 # Docker
 Dockerfile
 docker-compose.yml
-.dockerignore
 
 # Deployment scripts
-deploy.sh
-deploy-production.sh
-deploy-shared.sh
+*.sh
 
-# Server files (backend not used on Vercel)
+# Server files not needed for static deployment
 server.js
 server-prod.js
 server-shared-prod.js
 shared-server.js
-config/
-api/server.js
-api/package.json
-api/tsconfig.json
-api/prisma/
+config/database.js
 
-# Keep api/index.js for Vercel serverless function
-!api/index.js
-
-# Old versions and debugging files
-guest-pass-system-*.html
-complete-*.html
+# Test HTML files
+test-*.html
+*-test.html
 debug-*.html
 brute-force-*.html
 fail-safe-*.html
-final-*.html
-force-*.html
-qr-*.html
-shared-*.html
-simple-*.html
 ultimate-*.html
+simple-qr-*.html
+qr-debug-*.html
+qr-generation-*.html
+qr-live-*.html
+qr-validation-*.html
+qr-verification-*.html
 working-*.html
-
-# Keep only essential files
-!index.html
-!public/
-!*.min.js
-!babel.min.js
-!html2canvas.min.js
-!jsQR.js
-!qrcode.min.js
-!react.production.min.js
-!react-dom.production.min.js
-!tailwindcss.js
+force-*.html
+final-*.html
+complete-*.html
+guest-pass-system-*.html
+shared-*.html
 deploy-shared.sh
