@@ -57,6 +57,9 @@ shared-server.js
 config/
 api/
 
+# Keep index.js for Vercel entrypoint
+!index.js
+
 # Old versions and debugging files
 guest-pass-system-*.html
 complete-*.html
