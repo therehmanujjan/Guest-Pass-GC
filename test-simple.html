@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test - Grand City Guest Pass</title>
+    
+    <!-- React and ReactDOM from local files -->
+    <script src="./react.production.min.js"></script>
+    <script src="./react-dom.production.min.js"></script>
+    <script src="./babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        console.log('🚀 Starting simple test...');
+        
+        // Check if React is available
+        if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+            console.error('React not loaded');
+            document.getElementById('root').innerHTML = '<div style="color: red; padding: 20px;"><h1>React Error</h1><p>React libraries failed to load</p></div>';
+        } else {
+            console.log('✅ React loaded successfully');
+            
+            const SimpleApp = () => {
+                return (
+                    <div className="min-h-screen flex items-center justify-center">
+                        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+                            <h1 className="text-3xl font-bold text-center text-gray-800 mb-4">
+                                Grand City Guest Pass
+                            </h1>
+                            <p className="text-center text-gray-600 mb-6">
+                                System is working correctly!
+                            </p>
+                            <div className="text-center">
+                                <button 
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded"
+                                    onClick={() => alert('Hello from Grand City!')}
+                                >
+                                    Test Button
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+            
+            ReactDOM.render(<SimpleApp />, document.getElementById('root'));
+            console.log('✅ Simple app rendered successfully');
+        }
+    </script>
+</body>
+</html>

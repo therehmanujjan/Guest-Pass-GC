@@ -1,0 +1,103 @@
+{
+  "name": "guest-pass-system",
+  "version": "1.0.0",
+  "description": "Comprehensive guest pass management system with QR code generation and multi-role access",
+  "main": "guest-pass-system.html",
+  "scripts": {
+    "build": "npm run build:prod",
+    "build:dev": "cross-env NODE_ENV=development webpack --config webpack.config.js",
+    "build:staging": "cross-env NODE_ENV=staging webpack --config webpack.config.js",
+    "build:prod": "cross-env NODE_ENV=production webpack --config webpack.config.js",
+    "serve": "http-server dist -p 8080 -c-1",
+    "serve:dev": "http-server dist -p 8081 -c-1",
+    "serve:staging": "http-server dist -p 8082 -c-1",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "jest --testPathPattern=tests/unit",
+    "test:integration": "jest --testPathPattern=tests/integration",
+    "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint src/ --ext .js,.jsx,.ts,.tsx --fix",
+    "security:audit": "npm audit && node scripts/security-audit.js",
+    "deploy": "npm run build && npm run deploy:vercel",
+    "deploy:vercel": "vercel --prod",
+    "deploy:staging": "cross-env NODE_ENV=staging npm run build && vercel --target staging",
+    "package": "npm run build && npm run package:create",
+    "package:create": "node scripts/create-package.js",
+    "checksum": "node scripts/generate-checksums.js",
+    "version:bump": "node scripts/version-bump.js",
+    "rollback": "node scripts/rollback.js",
+    "monitor": "node scripts/monitoring.js",
+    "clean": "rimraf dist node_modules/.cache",
+    "prebuild": "npm run clean && npm run security:audit",
+    "postbuild": "npm run test && npm run checksum && npm run package:create"
+  },
+  "keywords": [
+    "guest-pass",
+    "qr-code",
+    "visitor-management",
+    "access-control",
+    "multi-role",
+    "real-time-sync"
+  ],
+  "author": "Guest Pass System Team",
+  "license": "MIT",
+  "dependencies": {
+    "qrcode": "^1.5.3",
+    "html2canvas": "^1.4.1",
+    "jsqr": "^1.4.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.1",
+    "zustand": "^4.3.6"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.21.0",
+    "@babel/preset-env": "^7.20.2",
+    "@babel/preset-react": "^7.18.6",
+    "@babel/preset-typescript": "^7.21.0",
+    "@types/jest": "^29.4.0",
+    "@types/node": "^18.14.6",
+    "@types/react": "^18.0.28",
+    "@types/react-dom": "^18.0.11",
+    "@typescript-eslint/eslint-plugin": "^5.54.0",
+    "@typescript-eslint/parser": "^5.54.0",
+    "babel-loader": "^9.1.2",
+    "clean-webpack-plugin": "^4.0.0",
+    "copy-webpack-plugin": "^11.0.0",
+    "cross-env": "^7.0.3",
+    "css-loader": "^6.7.3",
+    "css-minimizer-webpack-plugin": "^4.2.2",
+    "eslint": "^8.35.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "html-webpack-plugin": "^5.5.0",
+    "http-server": "^14.1.1",
+    "jest": "^29.4.3",
+    "jest-environment-jsdom": "^29.4.3",
+    "mini-css-extract-plugin": "^2.7.2",
+    "rimraf": "^4.1.2",
+    "style-loader": "^3.3.1",
+    "terser-webpack-plugin": "^5.3.6",
+    "typescript": "^4.9.5",
+    "vercel": "^28.16.15",
+    "webpack": "^5.75.0",
+    "webpack-bundle-analyzer": "^4.8.0",
+    "webpack-cli": "^5.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/guest-pass-system.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/guest-pass-system/issues"
+  },
+  "homepage": "https://github.com/your-org/guest-pass-system#readme",
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}

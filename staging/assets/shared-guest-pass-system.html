@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Guest Pass Management System</title>
+    
+    <!-- Local JavaScript Libraries -->
+    <script src="/react.production.min.js"></script>
+    <script src="/react-dom.production.min.js"></script>
+    <script src="/babel.min.js"></script>
+    <script src="/tailwindcss.js"></script>
+    <script src="/qrcode.min.js"></script>
+    <script src="/html2canvas.min.js"></script>
+    <script src="/jsQR.js"></script>
+    
+    <!-- Local Supabase Client -->
+    <script src="/supabase.min.js"></script>
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .sync-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .sync-connected {
+            background: #10b981;
+            color: white;
+        }
+        .sync-syncing {
+            background: #f59e0b;
+            color: white;
+        }
+        .sync-error {
+            background: #ef4444;
+            color: white;
+        }
+        .real-time-badge {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Supabase configuration
+        const supabaseUrl = 'https://aluaqwyioopnizdoevbf.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsdWFxd3lpb29wbml6ZG9ldmJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MjA2ODIsImV4cCI6MjA3NDA5NjY4Mn0.e8QecFn2uhFsA8E99v-KEdIqdpJE4YS367jl2pTq3Rc';
+        
+        // Initialize Supabase client with error handling
+        let supabaseClient;
+        try {
+            if (window.supabase && window.supabase.createClient) {
+                supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+            } else {
+                console.error('Supabase library not loaded');
+                // Fallback: create a mock client that shows error messages
+                supabaseClient = {
+                    from: () => ({
+                        select: () => ({ data: [], error: new Error('Supabase client not available') }),
+                        insert: () => ({ data: null, error: new Error('Supabase client not available') }),
+                        update: () => ({ data: null, error: new Error('Supabase client not available') }),
+                        delete: () => ({ error: new Error('Supabase client not available') })
+                    })
+                };
+            }
+        } catch (error) {
+            console.error('Error initializing Supabase client:', error);
+            supabaseClient = null;
+        }
+
+        // API configuration - use current origin for Vercel deployment
+        const API_BASE_URL = window.location.origin + '/api';
+
+        // Main App Component
+        const GuestPassApp = () => {
+            const [currentView, setCurrentView] = useState('dashboard');
+            const [userRole, setUserRole] = useState('admin');
+            const [syncStatus, setSyncStatus] = useState('connected');
+            const [lastSync, setLastSync] = useState(new Date());
+
+            return (
+                <div className="min-h-screen">
+                    {/* Sync Indicator */}
+                    <div className={`sync-indicator sync-${syncStatus}`}>
+                        {syncStatus === 'connected' && '● Connected'}
+                        {syncStatus === 'syncing' && '⟳ Syncing...'}
+                        {syncStatus === 'error' && '✗ Connection Error'}
+                    </div>
+
+                    {/* Header */}
+                    <header className="glass-card shadow-lg">
+                        <div className="max-w-7xl mx-auto px-4 py-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-4">
+                                    <h1 className="text-3xl font-bold text-gray-800">
+                                        Shared Guest Pass System
+                                    </h1>
+                                    <span className="real-time-badge">REAL-TIME</span>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    <span className="text-sm text-gray-600">
+                                        Role: <span className="font-semibold capitalize">{userRole}</span>
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                        Last sync: {lastSync.toLocaleTimeString()}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Navigation */}
+                    <nav className="glass-card mt-4 mx-4">
+                        <div className="max-w-7xl mx-auto px-4 py-4">
+                            <div className="flex space-x-6">
+                                {[
+                                    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+                                    { id: 'visitors', label: 'Visitors', icon: '👥' },
+                                    { id: 'checkin', label: 'Check-in', icon: '✅' },
+                                    { id: 'scan', label: 'Scan QR', icon: '📱' }
+                                ].map(item => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => setCurrentView(item.id)}
+                                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
+                                            currentView === item.id
+                                                ? 'bg-blue-600 text-white shadow-lg'
+                                                : 'text-gray-600 hover:bg-gray-100'
+                                        }`}
+                                    >
+                                        <span>{item.icon}</span>
+                                        <span className="font-medium">{item.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </nav>
+
+                    {/* Main Content */}
+                    <main className="max-w-7xl mx-auto px-4 py-8">
+                        {currentView === 'dashboard' && <Dashboard syncStatus={syncStatus} setSyncStatus={setSyncStatus} />}
+                        {currentView === 'visitors' && <VisitorManagement syncStatus={syncStatus} setSyncStatus={setSyncStatus} />}
+                        {currentView === 'checkin' && <CheckInForm syncStatus={syncStatus} setSyncStatus={setSyncStatus} />}
+                        {currentView === 'scan' && <QRScanner syncStatus={syncStatus} setSyncStatus={setSyncStatus} />}
+                    </main>
+                </div>
+            );
+        };
+
+        // Dashboard Component
+        const Dashboard = ({ syncStatus, setSyncStatus }) => {
+            const [stats, setStats] = useState({
+                totalVisitors: 0,
+                checkedInVisitors: 0,
+                todayVisits: 0
+            });
+            const [recentVisits, setRecentVisits] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            const fetchDashboardData = async () => {
+                try {
+                    setSyncStatus('syncing');
+                    
+                    // Fetch dashboard stats
+                    const statsResponse = await fetch(`${API_BASE_URL}/dashboard-stats`);
+                    const statsData = await statsResponse.json();
+                    setStats(statsData);
+
+                    // Fetch recent visits
+                    const visitsResponse = await fetch(`${API_BASE_URL}/visits?limit=10`);
+                    const visitsData = await visitsResponse.json();
+                    setRecentVisits(visitsData.slice(0, 10));
+
+                    setSyncStatus('connected');
+                } catch (error) {
+                    console.error('Error fetching dashboard data:', error);
+                    setSyncStatus('error');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            useEffect(() => {
+                fetchDashboardData();
+                
+                // Set up real-time subscription
+                if (supabaseClient && supabaseClient.channel) {
+                    try {
+                        const subscription = supabaseClient
+                            .channel('dashboard-updates')
+                            .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+                                fetchDashboardData();
+                            })
+                            .subscribe();
+
+                        return () => {
+                            subscription.unsubscribe();
+                        };
+                    } catch (error) {
+                        console.error('Error setting up dashboard subscription:', error);
+                    }
+                }
+            }, []);
+
+            if (loading) {
+                return (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="loading-spinner"></div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="glass-card p-6 rounded-xl shadow-lg">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Total Visitors</p>
+                                    <p className="text-3xl font-bold text-gray-900">{stats.totalVisitors}</p>
+                                </div>
+                                <div className="text-4xl">👥</div>
+                            </div>
+                        </div>
+                        
+                        <div className="glass-card p-6 rounded-xl shadow-lg">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Checked In</p>
+                                    <p className="text-3xl font-bold text-green-600">{stats.checkedInVisitors}</p>
+                                </div>
+                                <div className="text-4xl">✅</div>
+                            </div>
+                        </div>
+                        
+                        <div className="glass-card p-6 rounded-xl shadow-lg">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Today's Visits</p>
+                                    <p className="text-3xl font-bold text-blue-600">{stats.todayVisits}</p>
+                                </div>
+                                <div className="text-4xl">📅</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Recent Visits */}
+                    <div className="glass-card p-6 rounded-xl shadow-lg">
+                        <h3 className="text-xl font-semibold text-gray-800 mb-4">Recent Check-ins</h3>
+                        <div className="space-y-3">
+                            {recentVisits.map(visit => (
+                                <div key={visit.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p className="font-medium text-gray-800">{visit.visitors?.name}</p>
+                                        <p className="text-sm text-gray-600">Host: {visit.host_name}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm text-gray-600">
+                                            {new Date(visit.check_in_time).toLocaleTimeString()}
+                                        </p>
+                                        <span className={`inline-block px-2 py-1 text-xs rounded ${
+                                            visit.status === 'checked_in' 
+                                                ? 'bg-green-100 text-green-800' 
+                                                : 'bg-gray-100 text-gray-800'
+                                        }`}>
+                                            {visit.status}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                            {recentVisits.length === 0 && (
+                                <p className="text-gray-500 text-center py-4">No recent visits</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Visitor Management Component
+        const VisitorManagement = ({ syncStatus, setSyncStatus }) => {
+            const [visitors, setVisitors] = useState([]);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [loading, setLoading] = useState(true);
+
+            const fetchVisitors = async () => {
+                try {
+                    setSyncStatus('syncing');
+                    const response = await fetch(`${API_BASE_URL}/visitors`);
+                    const data = await response.json();
+                    setVisitors(data);
+                    setSyncStatus('connected');
+                } catch (error) {
+                    console.error('Error fetching visitors:', error);
+                    setSyncStatus('error');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            useEffect(() => {
+                fetchVisitors();
+                
+                // Set up real-time subscription
+                if (supabaseClient && supabaseClient.channel) {
+                    try {
+                        const subscription = supabaseClient
+                            .channel('visitors-updates')
+                            .on('postgres_changes', { event: '*', schema: 'public', table: 'visitors' }, () => {
+                                fetchVisitors();
+                            })
+                            .subscribe();
+
+                        return () => {
+                            subscription.unsubscribe();
+                        };
+                    } catch (error) {
+                        console.error('Error setting up visitors subscription:', error);
+                    }
+                }
+            }, []);
+
+            const filteredVisitors = visitors.filter(visitor =>
+                visitor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                visitor.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                visitor.company?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            if (loading) {
+                return (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="loading-spinner"></div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="glass-card p-6 rounded-xl shadow-lg">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-2xl font-bold text-gray-800">Visitor Management</h2>
+                            <div className="flex items-center space-x-4">
+                                <input
+                                    type="text"
+                                    placeholder="Search visitors..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                    Add Visitor
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-gray-200">
+                                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
+                                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Email</th>
+                                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Phone</th>
+                                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Company</th>
+                                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredVisitors.map(visitor => (
+                                        <tr key={visitor.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                            <td className="py-3 px-4 font-medium">{visitor.name}</td>
+                                            <td className="py-3 px-4 text-gray-600">{visitor.email || 'N/A'}</td>
+                                            <td className="py-3 px-4 text-gray-600">{visitor.phone || 'N/A'}</td>
+                                            <td className="py-3 px-4 text-gray-600">{visitor.company || 'N/A'}</td>
+                                            <td className="py-3 px-4">
+                                                <button className="text-blue-600 hover:text-blue-800 mr-2">Edit</button>
+                                                <button className="text-red-600 hover:text-red-800">Delete</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {filteredVisitors.length === 0 && (
+                                <div className="text-center py-8 text-gray-500">
+                                    No visitors found
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // CheckIn Form Component
+        const CheckInForm = ({ syncStatus, setSyncStatus }) => {
+            const [formData, setFormData] = useState({
+                name: '',
+                email: '',
+                phone: '',
+                company: '',
+                idNumber: '',
+                idType: 'national_id',
+                purpose: '',
+                hostName: '',
+                photo: null
+            });
+            const [executives, setExecutives] = useState([]);
+            const [loading, setLoading] = useState(false);
+
+            useEffect(() => {
+                fetchExecutives();
+            }, []);
+
+            const fetchExecutives = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/executives`);
+                    const data = await response.json();
+                    setExecutives(data);
+                } catch (error) {
+                    console.error('Error fetching executives:', error);
+                }
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setSyncStatus('syncing');
+
+                try {
+                    // Create visitor
+                    const visitorResponse = await fetch(`${API_BASE_URL}/visitors`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: formData.name,
+                            email: formData.email,
+                            phone: formData.phone,
+                            company: formData.company,
+                            id_number: formData.idNumber,
+                            id_type: formData.idType,
+                            photo_url: formData.photo
+                        })
+                    });
+
+                    const visitorData = await visitorResponse.json();
+
+                    // Create visit
+                    const qrCode = await generateQRCode(visitorData.id);
+                    await fetch(`${API_BASE_URL}/visits`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            visitor_id: visitorData.id,
+                            purpose: formData.purpose,
+                            host_name: formData.hostName,
+                            qr_code: qrCode
+                        })
+                    });
+
+                    // Reset form
+                    setFormData({
+                        name: '',
+                        email: '',
+                        phone: '',
+                        company: '',
+                        idNumber: '',
+                        idType: 'national_id',
+                        purpose: '',
+                        hostName: '',
+                        photo: null
+                    });
+
+                    alert('Visitor checked in successfully!');
+                    setSyncStatus('connected');
+                } catch (error) {
+                    console.error('Error checking in visitor:', error);
+                    setSyncStatus('error');
+                    alert('Error checking in visitor. Please try again.');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="glass-card p-6 rounded-xl shadow-lg">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Visitor Check-in</h2>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                <input
+                                    type="tel"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                                <input
+                                    type="text"
+                                    value={formData.company}
+                                    onChange={(e) => setFormData({...formData, company: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">ID Number</label>
+                                <input
+                                    type="text"
+                                    value={formData.idNumber}
+                                    onChange={(e) => setFormData({...formData, idNumber: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">ID Type</label>
+                                <select
+                                    value={formData.idType}
+                                    onChange={(e) => setFormData({...formData, idType: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="national_id">National ID</option>
+                                    <option value="passport">Passport</option>
+                                    <option value="driver_license">Driver's License</option>
+                                    <option value="work_permit">Work Permit</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Purpose of Visit *</label>
+                            <textarea
+                                required
+                                value={formData.purpose}
+                                onChange={(e) => setFormData({...formData, purpose: e.target.value})}
+                                rows="3"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Host Name *</label>
+                            <select
+                                required
+                                value={formData.hostName}
+                                onChange={(e) => setFormData({...formData, hostName: e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                                <option value="">Select Host</option>
+                                {executives.map(exec => (
+                                    <option key={exec.id} value={exec.name}>
+                                        {exec.name} - {exec.department}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        
+                        <div className="flex justify-end space-x-4">
+                            <button
+                                type="button"
+                                onClick={() => setFormData({
+                                    name: '', email: '', phone: '', company: '',
+                                    idNumber: '', idType: 'national_id', purpose: '',
+                                    hostName: '', photo: null
+                                })}
+                                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                Clear
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                            >
+                                {loading ? 'Checking In...' : 'Check In Visitor'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            );
+        };
+
+        // QR Scanner Component
+        const QRScanner = ({ syncStatus, setSyncStatus }) => {
+            const [scanResult, setScanResult] = useState(null);
+            const [scanning, setScanning] = useState(false);
+            const videoRef = useRef(null);
+            const canvasRef = useRef(null);
+
+            const startScanning = async () => {
+                setScanning(true);
+                setScanResult(null);
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'environment' } 
+                    });
+                    
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                        videoRef.current.play();
+                    }
+
+                    // Start scanning loop
+                    scanFrame();
+                } catch (error) {
+                    console.error('Error accessing camera:', error);
+                    alert('Unable to access camera. Please check permissions.');
+                    setScanning(false);
+                }
+            };
+
+            const scanFrame = () => {
+                if (!scanning || !videoRef.current || !canvasRef.current) return;
+
+                const canvas = canvasRef.current;
+                const context = canvas.getContext('2d');
+                const video = videoRef.current;
+
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.height = video.videoHeight;
+                    canvas.width = video.videoWidth;
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+                    
+                    if (code) {
+                        handleQRCode(code.data);
+                        return;
+                    }
+                }
+
+                requestAnimationFrame(scanFrame);
+            };
+
+            const handleQRCode = async (data) => {
+                try {
+                    const visitId = data;
+                    
+                    // Fetch visit details
+                    const response = await fetch(`${API_BASE_URL}/visits/${visitId}`);
+                    const visitData = await response.json();
+                    
+                    setScanResult({
+                        visit: visitData,
+                        status: 'found'
+                    });
+                    
+                    // Stop scanning
+                    stopScanning();
+                } catch (error) {
+                    console.error('Error processing QR code:', error);
+                    setScanResult({
+                        error: 'Invalid QR code or visit not found',
+                        status: 'error'
+                    });
+                }
+            };
+
+            const stopScanning = () => {
+                setScanning(false);
+                if (videoRef.current && videoRef.current.srcObject) {
+                    videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+                }
+            };
+
+            const checkOutVisitor = async () => {
+                if (!scanResult?.visit) return;
+                
+                try {
+                    setSyncStatus('syncing');
+                    
+                    await fetch(`${API_BASE_URL}/visits/${scanResult.visit.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            status: 'checked_out',
+                            check_out_time: new Date().toISOString()
+                        })
+                    });
+                    
+                    setScanResult({
+                        ...scanResult,
+                        status: 'checked_out'
+                    });
+                    
+                    setSyncStatus('connected');
+                    alert('Visitor checked out successfully!');
+                } catch (error) {
+                    console.error('Error checking out visitor:', error);
+                    setSyncStatus('error');
+                    alert('Error checking out visitor. Please try again.');
+                }
+            };
+
+            useEffect(() => {
+                return () => {
+                    stopScanning();
+                };
+            }, []);
+
+            return (
+                <div className="glass-card p-6 rounded-xl shadow-lg">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">QR Code Scanner</h2>
+                    
+                    {!scanning && !scanResult && (
+                        <div className="text-center">
+                            <div className="text-6xl mb-4">📱</div>
+                            <p className="text-gray-600 mb-6">Scan QR codes to check visitors in or out</p>
+                            <button
+                                onClick={startScanning}
+                                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Start Scanning
+                            </button>
+                        </div>
+                    )}
+                    
+                    {scanning && (
+                        <div className="text-center">
+                            <video
+                                ref={videoRef}
+                                className="w-full max-w-md mx-auto rounded-lg border-2 border-blue-500"
+                                style={{ transform: 'scaleX(-1)' }}
+                            />
+                            <canvas
+                                ref={canvasRef}
+                                className="hidden"
+                            />
+                            <button
+                                onClick={stopScanning}
+                                className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                Stop Scanning
+                            </button>
+                        </div>
+                    )}
+                    
+                    {scanResult && (
+                        <div className="text-center">
+                            {scanResult.status === 'found' && (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                                    <div className="text-4xl mb-4">✅</div>
+                                    <h3 className="text-lg font-semibold text-green-800 mb-2">Visit Found!</h3>
+                                    <p className="text-green-700 mb-2">Visitor: {scanResult.visit.visitors?.name}</p>
+                                    <p className="text-green-700 mb-4">Status: {scanResult.visit.status}</p>
+                                    {scanResult.visit.status === 'checked_in' && (
+                                        <button
+                                            onClick={checkOutVisitor}
+                                            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                        >
+                                            Check Out
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                            {scanResult.status === 'error' && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                                    <div className="text-4xl mb-4">❌</div>
+                                    <h3 className="text-lg font-semibold text-red-800 mb-2">Error</h3>
+                                    <p className="text-red-700">{scanResult.error}</p>
+                                </div>
+                            )}
+                            <button
+                                onClick={() => setScanResult(null)}
+                                className="mt-4 px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                            >
+                                Scan Another
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // QR Code Generation Function
+        const generateQRCode = async (text) => {
+            try {
+                // Wait for QRCode library to be available
+                let attempts = 0;
+                const maxAttempts = 50; // 5 seconds timeout
+                
+                while (typeof QRCode === 'undefined' && attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                // Create a canvas element for QR code generation
+                const canvas = document.createElement('canvas');
+                const qrCode = new QRCode(canvas, {
+                    text: text,
+                    width: 200,
+                    height: 200,
+                    colorDark: '#000000',
+                    colorLight: '#FFFFFF',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+                
+                // Return the data URL from canvas
+                return canvas.toDataURL('image/png');
+            } catch (e) {
+                console.error('QR generation error:', e);
+                return null;
+            }
+        };
+
+        // Render the app
+        ReactDOM.render(<GuestPassApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>

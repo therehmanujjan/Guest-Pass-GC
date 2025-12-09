@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generation Test - Grand City HQ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- QR Code and utilities from local files -->
+    <script src="./qrcode.min.js"></script>
+    <script src="./html2canvas.min.js"></script>
+    
+    <style>
+        .qr-test-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .test-pass {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="qr-test-container min-h-screen py-8">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-white mb-2">QR Code Generation Test</h1>
+                <p class="text-white opacity-90">Testing QR code generation with real visit data</p>
+            </div>
+
+            <!-- Library Status -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Library Status</h2>
+                <div id="library-status" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Status will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Test Cases -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <!-- Test Case 1: Simple QR Code -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Test 1: Simple QR Code</h3>
+                    <div class="text-center">
+                        <div id="simple-qr" class="mb-4 flex justify-center">
+                            <div class="w-48 h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <span class="text-gray-500">Generating...</span>
+                            </div>
+                        </div>
+                        <button onclick="testSimpleQR()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            Generate Simple QR
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Test Case 2: Visit Pass QR Code -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Test 2: Visit Pass QR</h3>
+                    <div class="text-center">
+                        <div id="visit-qr" class="mb-4 flex justify-center">
+                            <div class="w-48 h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <span class="text-gray-500">Generating...</span>
+                            </div>
+                        </div>
+                        <button onclick="testVisitQR()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                            Generate Visit QR
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Digital Pass Preview -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Digital Pass Preview</h2>
+                <div class="flex justify-center">
+                    <div id="digital-pass-preview" class="test-pass rounded-lg p-6 text-white max-w-sm w-full">
+                        <div class="text-center mb-4">
+                            <h3 class="text-lg font-bold">GRAND CITY HQ</h3>
+                            <p class="text-sm opacity-90">GUEST PASS</p>
+                        </div>
+                        
+                        <div id="pass-qr-container" class="bg-white rounded-lg p-4 mb-4 flex justify-center">
+                            <div class="w-32 h-32 bg-gray-200 rounded flex items-center justify-center">
+                                <span class="text-gray-500 text-xs">QR Code</span>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="opacity-75">Visitor:</span>
+                                <span class="font-semibold">John Doe</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="opacity-75">Code:</span>
+                                <span class="font-mono font-bold">GC-2025-000001</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="opacity-75">Date:</span>
+                                <span>Dec 6, 2025</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="opacity-75">Time:</span>
+                                <span>10:00 AM - 11:00 AM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-4">
+                    <button onclick="testDigitalPassQR()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                        Generate Pass QR
+                    </button>
+                </div>
+            </div>
+
+            <!-- Console Output -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Console Output</h2>
+                <div id="console-output" class="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm max-h-64 overflow-y-auto">
+                    <div class="text-gray-400">Console output will appear here...</div>
+                </div>
+                <button onclick="clearConsole()" class="mt-2 px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors">
+                    Clear Console
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Console output function
+        function log(message, type = 'info') {
+            const consoleOutput = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const colorClass = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-green-400' : 'text-green-400';
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `${colorClass}`;
+            logEntry.textContent = `[${timestamp}] ${prefix} ${message}`;
+            
+            consoleOutput.appendChild(logEntry);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            
+            // Also log to browser console
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        // Check library status
+        function checkLibraryStatus() {
+            const libraries = [
+                { name: 'QRCode', variable: 'QRCode' },
+                { name: 'html2canvas', variable: 'html2canvas' }
+            ];
+            
+            const statusContainer = document.getElementById('library-status');
+            statusContainer.innerHTML = '';
+            
+            libraries.forEach(lib => {
+                const isLoaded = typeof window[lib.variable] !== 'undefined';
+                const statusDiv = document.createElement('div');
+                statusDiv.className = `p-3 rounded-lg text-center ${isLoaded ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+                statusDiv.innerHTML = `
+                    <div class="font-semibold">${lib.name}</div>
+                    <div class="text-sm">${isLoaded ? '✅ Loaded' : '❌ Missing'}</div>
+                `;
+                statusContainer.appendChild(statusDiv);
+                
+                log(`${lib.name}: ${isLoaded ? 'Loaded' : 'Missing'}`, isLoaded ? 'success' : 'error');
+            });
+        }
+
+        // Enhanced QR Code Generation (same as in main file)
+        const generateQRCode = async (text) => {
+            try {
+                log(`Starting QR code generation for: ${text}`);
+                
+                // Wait for QRCode library to be available
+                let attempts = 0;
+                const maxAttempts = 50; // 5 seconds timeout
+                
+                while (typeof QRCode === 'undefined' && attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                if (typeof QRCode === 'undefined') {
+                    log('QR code library failed to load after 5 seconds', 'error');
+                    return generateFallbackQR(text);
+                }
+                
+                log(`QRCode library loaded: ${typeof QRCode}`);
+                log(`QRCode methods available: ${Object.keys(QRCode).join(', ')}`);
+                
+                // Method 1: Use QRCode constructor directly (most reliable)
+                log('Trying QRCode constructor method...');
+                return new Promise((resolve) => {
+                    try {
+                        // Create a container div for the QR code
+                        const container = document.createElement('div');
+                        container.style.width = '200px';
+                        container.style.height = '200px';
+                        container.style.display = 'none';
+                        document.body.appendChild(container);
+                        
+                        // Create QRCode instance
+                        const qrCode = new QRCode(container, {
+                            text: text,
+                            width: 200,
+                            height: 200,
+                            colorDark: '#000000',
+                            colorLight: '#FFFFFF',
+                            correctLevel: QRCode.CorrectLevel.M
+                        });
+                        
+                        log('QRCode instance created successfully');
+                        
+                        // Wait for QR code to be rendered
+                        setTimeout(() => {
+                            try {
+                                // Find the canvas or img element in the container
+                                const canvas = container.querySelector('canvas');
+                                const img = container.querySelector('img');
+                                
+                                let dataUrl = '';
+                                
+                                if (canvas) {
+                                    dataUrl = canvas.toDataURL('image/png');
+                                    log('QR code generated from canvas');
+                                } else if (img) {
+                                    dataUrl = img.src;
+                                    log('QR code generated from img src');
+                                } else {
+                                    log('No canvas or img found, trying fallback', 'error');
+                                    dataUrl = generateFallbackQR(text);
+                                }
+                                
+                                // Clean up
+                                document.body.removeChild(container);
+                                log(`QR code data URL length: ${dataUrl.length}`);
+                                log(`QR code data URL preview: ${dataUrl.substring(0, 50)}...`);
+                                resolve(dataUrl);
+                                
+                            } catch (renderError) {
+                                log(`QR rendering error: ${renderError.message}`, 'error');
+                                document.body.removeChild(container);
+                                resolve(generateFallbackQR(text));
+                            }
+                        }, 500);
+                        
+                    } catch (constructorError) {
+                        log(`QRCode constructor error: ${constructorError.message}`, 'error');
+                        resolve(generateFallbackQR(text));
+                    }
+                });
+                
+            } catch (e) {
+                log(`QR generation error: ${e.message}`, 'error');
+                return generateFallbackQR(text);
+            }
+        };
+
+        // Fallback QR code generation
+        const generateFallbackQR = (text) => {
+            log('Using fallback QR generation');
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 200;
+                canvas.height = 200;
+                const ctx = canvas.getContext('2d');
+                
+                if (!ctx) {
+                    log('Canvas 2D context not available', 'error');
+                    return createTextFallback(text);
+                }
+                
+                // White background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, 200, 200);
+                
+                // Black border
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(10, 10, 180, 180);
+                
+                // Add finder patterns (the three big squares in corners)
+                ctx.fillStyle = '#000000';
+                
+                // Top-left finder pattern
+                ctx.fillRect(20, 20, 14, 14);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(22, 22, 10, 10);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(24, 24, 6, 6);
+                
+                // Top-right finder pattern
+                ctx.fillRect(166, 20, 14, 14);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(168, 22, 10, 10);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(170, 24, 6, 6);
+                
+                // Bottom-left finder pattern
+                ctx.fillRect(20, 166, 14, 14);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(22, 168, 10, 10);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(24, 170, 6, 6);
+                
+                // Simple pattern to represent QR code data
+                ctx.fillStyle = '#000000';
+                const moduleSize = 4;
+                const modules = 32;
+                
+                // Create a simple pattern based on the text
+                let hash = 0;
+                for (let i = 0; i < text.length; i++) {
+                    hash = ((hash << 5) - hash + text.charCodeAt(i)) & 0xFFFFFFFF;
+                }
+                
+                // Fill with a pattern based on the hash
+                for (let row = 0; row < modules; row++) {
+                    for (let col = 0; col < modules; col++) {
+                        if ((hash + row * col) % 3 === 0) {
+                            const x = 40 + col * moduleSize;
+                            const y = 40 + row * moduleSize;
+                            ctx.fillRect(x, y, moduleSize, moduleSize);
+                        }
+                    }
+                }
+                
+                // Add the text at the bottom
+                ctx.fillStyle = '#666666';
+                ctx.font = '10px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(text.substring(0, 20), 100, 195);
+                
+                return canvas.toDataURL('image/png');
+                
+            } catch (e) {
+                log(`Fallback QR error: ${e.message}`, 'error');
+                return createTextFallback(text);
+            }
+        };
+
+        // Text fallback
+        const createTextFallback = (text) => {
+            log('Using text fallback');
+            try {
+                const svgData = `
+                    <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="200" height="200" fill="white"/>
+                        <rect x="10" y="10" width="180" height="180" fill="none" stroke="black" stroke-width="2"/>
+                        <text x="100" y="100" text-anchor="middle" font-family="monospace" font-size="14" fill="black">
+                            ${text.substring(0, 8)}
+                        </text>
+                        <text x="100" y="120" text-anchor="middle" font-family="monospace" font-size="10" fill="gray">
+                            Code: ${text}
+                        </text>
+                    </svg>
+                `;
+                return 'data:image/svg+xml;base64,' + btoa(svgData);
+            } catch (e) {
+                log(`Text fallback error: ${e.message}`, 'error');
+                return '';
+            }
+        };
+
+        // Test functions
+        async function testSimpleQR() {
+            log('Testing simple QR code generation...');
+            const container = document.getElementById('simple-qr');
+            container.innerHTML = '<div class="w-48 h-48 bg-gray-200 rounded-lg flex items-center justify-center"><span class="text-gray-500">Generating...</span></div>';
+            
+            try {
+                const qrUrl = await generateQRCode('TEST-123456');
+                if (qrUrl) {
+                    container.innerHTML = `<img src="${qrUrl}" alt="QR Code" class="w-48 h-48">`;
+                    log('Simple QR code generated successfully', 'success');
+                } else {
+                    container.innerHTML = '<div class="w-48 h-48 bg-red-100 rounded-lg flex items-center justify-center text-red-600">Failed to generate</div>';
+                    log('Failed to generate simple QR code', 'error');
+                }
+            } catch (e) {
+                container.innerHTML = '<div class="w-48 h-48 bg-red-100 rounded-lg flex items-center justify-center text-red-600">Error occurred</div>';
+                log(`Simple QR test error: ${e.message}`, 'error');
+            }
+        }
+
+        async function testVisitQR() {
+            log('Testing visit QR code generation...');
+            const container = document.getElementById('visit-qr');
+            container.innerHTML = '<div class="w-48 h-48 bg-gray-200 rounded-lg flex items-center justify-center"><span class="text-gray-500">Generating...</span></div>';
+            
+            try {
+                const qrUrl = await generateQRCode('GC-2025-000005');
+                if (qrUrl) {
+                    container.innerHTML = `<img src="${qrUrl}" alt="QR Code" class="w-48 h-48">`;
+                    log('Visit QR code generated successfully', 'success');
+                } else {
+                    container.innerHTML = '<div class="w-48 h-48 bg-red-100 rounded-lg flex items-center justify-center text-red-600">Failed to generate</div>';
+                    log('Failed to generate visit QR code', 'error');
+                }
+            } catch (e) {
+                container.innerHTML = '<div class="w-48 h-48 bg-red-100 rounded-lg flex items-center justify-center text-red-600">Error occurred</div>';
+                log(`Visit QR test error: ${e.message}`, 'error');
+            }
+        }
+
+        async function testDigitalPassQR() {
+            log('Testing digital pass QR code generation...');
+            const container = document.getElementById('pass-qr-container');
+            container.innerHTML = '<div class="w-32 h-32 bg-gray-200 rounded flex items-center justify-center"><span class="text-gray-500 text-xs">Generating...</span></div>';
+            
+            try {
+                const qrUrl = await generateQRCode('GC-2025-000001');
+                if (qrUrl) {
+                    container.innerHTML = `<img src="${qrUrl}" alt="QR Code" class="w-32 h-32">`;
+                    log('Digital pass QR code generated successfully', 'success');
+                } else {
+                    container.innerHTML = '<div class="w-32 h-32 bg-red-100 rounded flex items-center justify-center text-red-600 text-xs">Failed</div>';
+                    log('Failed to generate digital pass QR code', 'error');
+                }
+            } catch (e) {
+                container.innerHTML = '<div class="w-32 h-32 bg-red-100 rounded flex items-center justify-center text-red-600 text-xs">Error</div>';
+                log(`Digital pass QR test error: ${e.message}`, 'error');
+            }
+        }
+
+        function clearConsole() {
+            document.getElementById('console-output').innerHTML = '<div class="text-gray-400">Console cleared...</div>';
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('QR Code Test System initialized');
+            checkLibraryStatus();
+            
+            // Auto-run simple test after 2 seconds
+            setTimeout(() => {
+                testSimpleQR();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

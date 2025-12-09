@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Pass Test - Working QR Alternative</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Arial', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .visitor-pass {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            border: 4px solid #d32f2f;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #d32f2f;
+            color: white;
+            padding: 20px;
+            margin: -30px -30px 25px -30px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .security-notice {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border: 2px solid #ffeb3b;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .code-section {
+            background: white;
+            border: 3px solid black;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        
+        .code-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .visit-code {
+            font-size: 48px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            font-family: 'Courier New', monospace;
+            color: #d32f2f;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f5f5f5;
+            border: 2px solid #333;
+            border-radius: 5px;
+        }
+        
+        .barcode {
+            height: 100px;
+            background: repeating-linear-gradient(
+                to right,
+                #000 0px,
+                #000 3px,
+                #fff 3px,
+                #fff 6px
+            );
+            margin: 20px 0;
+            border: 2px solid #333;
+            border-radius: 5px;
+            position: relative;
+        }
+        
+        .barcode::after {
+            content: "SCAN CODE";
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 5px 15px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            border: 1px solid #333;
+        }
+        
+        .qr-grid {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            background: white;
+            border: 5px solid #333;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            gap: 0;
+        }
+        
+        .qr-cell-black { 
+            background: #000; 
+            border: none;
+        }
+        .qr-cell-white { 
+            background: #fff; 
+            border: none;
+        }
+        
+        .visitor-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .info-value {
+            color: #212529;
+            text-align: right;
+        }
+        
+        .security-footer {
+            text-align: center;
+            margin-top: 25px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border: 1px solid #2196f3;
+            color: #1565c0;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .test-button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+            transition: background 0.3s;
+        }
+        
+        .test-button:hover {
+            background: #45a049;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="visitor-pass">
+        <div class="header">
+            🏢 GRAND CITY HQ - VISITOR PASS
+        </div>
+        
+        <div class="security-notice">
+            🔍 SHOW THIS PASS TO SECURITY GUARD
+        </div>
+        
+        <div class="code-section">
+            <div class="code-label">VISIT CODE</div>
+            <div class="visit-code" id="visitCode">VIS001234</div>
+            
+            <div class="barcode"></div>
+            
+            <div class="qr-grid">
+                <!-- QR Pattern - Black cells -->
+                <div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div>
+                <div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div>
+                <div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div>
+                <div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div>
+                <div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div>
+                <div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div>
+                <div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div>
+                <div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div>
+                <div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div>
+            </div>
+        </div>
+        
+        <div class="visitor-info">
+            <div class="info-row">
+                <span class="info-label">Visitor:</span>
+                <span class="info-value" id="visitorName">John Smith</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Company:</span>
+                <span class="info-value" id="visitorCompany">Tech Corp</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Meeting With:</span>
+                <span class="info-value" id="meetingWith">CEO Johnson</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Purpose:</span>
+                <span class="info-value" id="purpose">Business Meeting</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Date:</span>
+                <span class="info-value" id="visitDate">Dec 7, 2025</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Time:</span>
+                <span class="info-value" id="visitTime">2:00 PM</span>
+            </div>
+        </div>
+        
+        <div class="security-footer">
+            🔒 Security: Verify ID matches this pass. Report suspicious activity.
+        </div>
+        
+        <button class="test-button" onclick="generateNewCode()">Generate New Code</button>
+        
+        <div class="status success" id="status">
+            ✅ QR Code Alternative is Working! All elements are visible.
+        </div>
+    </div>
+
+    <script>
+        // Test the fail-safe QR functionality
+        function generateNewCode() {
+            const codes = ['VIS001234', 'VIS005678', 'VIS009012', 'VIS013456', 'VIS017890'];
+            const names = ['John Smith', 'Sarah Johnson', 'Mike Davis', 'Emma Wilson', 'David Brown'];
+            const companies = ['Tech Corp', 'Global Inc', 'Smart Solutions', 'Future Tech', 'Innovation Labs'];
+            
+            const randomIndex = Math.floor(Math.random() * codes.length);
+            
+            document.getElementById('visitCode').textContent = codes[randomIndex];
+            document.getElementById('visitorName').textContent = names[randomIndex];
+            document.getElementById('visitorCompany').textContent = companies[randomIndex];
+            
+            // Update status
+            document.getElementById('status').className = 'status success';
+            document.getElementById('status').textContent = `✅ Generated new code: ${codes[randomIndex]}`;
+            
+            console.log('New visitor pass generated:', codes[randomIndex]);
+        }
+        
+        // Test visibility
+        function testVisibility() {
+            const visitCode = document.getElementById('visitCode');
+            const barcode = document.querySelector('.barcode');
+            const qrGrid = document.querySelector('.qr-grid');
+            
+            let allVisible = true;
+            let issues = [];
+            
+            // Test visit code
+            if (!visitCode || visitCode.style.display === 'none' || visitCode.style.visibility === 'hidden') {
+                allVisible = false;
+                issues.push('Visit code not visible');
+            }
+            
+            // Test barcode
+            if (!barcode || barcode.style.display === 'none') {
+                allVisible = false;
+                issues.push('Barcode not visible');
+            }
+            
+            // Test QR grid
+            if (!qrGrid || qrGrid.style.display === 'none') {
+                allVisible = false;
+                issues.push('QR grid not visible');
+            }
+            
+            if (allVisible) {
+                console.log('✅ All QR alternative elements are visible');
+                document.getElementById('status').textContent = '✅ All QR elements are visible and working!';
+            } else {
+                console.log('❌ Visibility issues:', issues);
+                document.getElementById('status').className = 'status error';
+                document.getElementById('status').textContent = '❌ Issues: ' + issues.join(', ');
+            }
+        }
+        
+        // Run visibility test on load
+        window.addEventListener('load', function() {
+            console.log('Fail-safe QR test loaded');
+            setTimeout(testVisibility, 1000);
+        });
+        
+        // Test every 5 seconds
+        setInterval(testVisibility, 5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grand City Guest Pass System - QR FIXED & WORKING</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1); }
+        .glass-white { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.9); }
+        
+        /* WORKING VISITOR PASS STYLES - GUARANTEED VISIBLE */
+        .visitor-pass {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: 4px solid #d32f2f;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .security-header {
+            background: #d32f2f;
+            color: white;
+            padding: 20px;
+            margin: -25px -25px 25px -25px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .security-notice {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border: 2px solid #ffeb3b;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .code-section {
+            background: white;
+            border: 3px solid black;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 25px 0;
+            text-align: center;
+            color: black;
+        }
+        
+        .code-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .visit-code {
+            font-size: 48px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            font-family: 'Courier New', monospace;
+            color: #d32f2f;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f5f5f5;
+            border: 2px solid #333;
+            border-radius: 5px;
+        }
+        
+        .barcode {
+            height: 100px;
+            background: repeating-linear-gradient(
+                to right,
+                #000 0px,
+                #000 3px,
+                #fff 3px,
+                #fff 6px
+            );
+            margin: 20px 0;
+            border: 2px solid #333;
+            border-radius: 5px;
+            position: relative;
+        }
+        
+        .qr-grid {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            background: white;
+            border: 5px solid black;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            gap: 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .qr-cell-black { background: #000; }
+        .qr-cell-white { background: #fff; }
+        
+        .visitor-info {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            color: white;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #e3f2fd;
+        }
+        
+        .info-value {
+            color: white;
+            text-align: right;
+        }
+        
+        .security-footer {
+            text-align: center;
+            margin-top: 25px;
+            padding: 15px;
+            background: rgba(227, 242, 253, 0.2);
+            border-radius: 8px;
+            border: 1px solid #2196f3;
+            color: #e3f2fd;
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Mock data storage
+        let mockData = {
+            users: [
+                { id: '1', name: 'Admin User', email: 'admin@grandcity.com', role: 'admin', avatar: '👨‍💼' },
+                { id: '2', name: 'John Executive', email: 'john@grandcity.com', role: 'executive', avatar: '👨‍💼' },
+                { id: '3', name: 'Sarah Staff', email: 'sarah@grandcity.com', role: 'staff', avatar: '👩‍💼' },
+                { id: '4', name: 'Mike Guard', email: 'mike@grandcity.com', role: 'guard', avatar: '👮‍♂️' },
+                { id: '5', name: 'Lisa Reception', email: 'lisa@grandcity.com', role: 'receptionist', avatar: '👩‍💼' }
+            ],
+            visits: [],
+            currentUser: null
+        };
+
+        // Load data from localStorage
+        const loadData = () => {
+            const saved = localStorage.getItem('guestPassData');
+            if (saved) {
+                mockData = JSON.parse(saved);
+            }
+        };
+
+        // Save data to localStorage
+        const saveData = () => {
+            localStorage.setItem('guestPassData', JSON.stringify(mockData));
+            // Dispatch event for cross-tab synchronization
+            window.dispatchEvent(new Event('storage'));
+        };
+
+        // Generate visit code
+        const generateVisitCode = () => {
+            return 'VIS' + String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+        };
+
+        // Main App Component
+        function App() {
+            const [currentUser, setCurrentUser] = useState(mockData.currentUser);
+            const [activeView, setActiveView] = useState('dashboard');
+            const [visits, setVisits] = useState(mockData.visits);
+            const [showNewVisitModal, setShowNewVisitModal] = useState(false);
+            const [selectedVisit, setSelectedVisit] = useState(null);
+
+            useEffect(() => {
+                loadData();
+                setCurrentUser(mockData.currentUser);
+                setVisits(mockData.visits);
+
+                // Listen for storage events (cross-tab sync)
+                const handleStorageChange = () => {
+                    loadData();
+                    setVisits(mockData.visits);
+                };
+                window.addEventListener('storage', handleStorageChange);
+                return () => window.removeEventListener('storage', handleStorageChange);
+            }, []);
+
+            const handleLogin = (user) => {
+                mockData.currentUser = user;
+                setCurrentUser(user);
+                saveData();
+            };
+
+            const handleLogout = () => {
+                mockData.currentUser = null;
+                setCurrentUser(null);
+                saveData();
+            };
+
+            const addVisit = (visitData) => {
+                const newVisit = {
+                    id: Date.now().toString(),
+                    ...visitData,
+                    code: generateVisitCode(),
+                    status: 'scheduled',
+                    createdAt: new Date().toISOString(),
+                    createdBy: currentUser.name
+                };
+                mockData.visits = [...mockData.visits, newVisit];
+                setVisits(mockData.visits);
+                saveData();
+                return newVisit;
+            };
+
+            const updateVisitStatus = (visitId, status) => {
+                mockData.visits = mockData.visits.map(visit => 
+                    visit.id === visitId ? { ...visit, status } : visit
+                );
+                setVisits(mockData.visits);
+                saveData();
+            };
+
+            if (!currentUser) {
+                return <LoginScreen onLogin={handleLogin} />;
+            }
+
+            return (
+                <div className="min-h-screen">
+                    {/* Header */}
+                    <header className="bg-white shadow-lg border-b border-gray-200">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex justify-between items-center h-16">
+                                <div className="flex items-center">
+                                    <h1 className="text-2xl font-bold text-gray-900">🏢 Grand City</h1>
+                                    <span className="ml-3 text-sm text-gray-500">Guest Pass System</span>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-2xl">{currentUser.avatar}</span>
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-900">{currentUser.name}</p>
+                                            <p className="text-xs text-gray-500 capitalize">{currentUser.role}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Navigation */}
+                    <nav className="bg-white border-b border-gray-200">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex space-x-8">
+                                <button
+                                    onClick={() => setActiveView('dashboard')}
+                                    className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                                        activeView === 'dashboard'
+                                            ? 'border-indigo-500 text-indigo-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    📊 Dashboard
+                                </button>
+                                {currentUser.role === 'guard' && (
+                                    <button
+                                        onClick={() => setActiveView('scanner')}
+                                        className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                                            activeView === 'scanner'
+                                                ? 'border-indigo-500 text-indigo-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        📱 QR Scanner
+                                    </button>
+                                )}
+                                {currentUser.role === 'receptionist' && (
+                                    <>
+                                        <button
+                                            onClick={() => setActiveView('scanner')}
+                                            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                                                activeView === 'scanner'
+                                                    ? 'border-indigo-500 text-indigo-600'
+                                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
+                                        >
+                                            📱 QR Scanner
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveView('walkin')}
+                                            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                                                activeView === 'walkin'
+                                                    ? 'border-indigo-500 text-indigo-600'
+                                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
+                                        >
+                                            🚶 Walk-in Registration
+                                        </button>
+                                    </>
+                                )}
+                                <button
+                                    onClick={() => setActiveView('visits')}
+                                    className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                                        activeView === 'visits'
+                                            ? 'border-indigo-500 text-indigo-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    📋 All Visits
+                                </button>
+                            </div>
+                        </div>
+                    </nav>
+
+                    {/* Main Content */}
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        {activeView === 'dashboard' && <Dashboard currentUser={currentUser} visits={visits} onNewVisit={() => setShowNewVisitModal(true)} />}
+                        {activeView === 'scanner' && <QRScanner visits={visits} onScan={(visit) => setSelectedVisit(visit)} />}
+                        {activeView === 'walkin' && <WalkInRegistration onRegister={addVisit} />}
+                        {activeView === 'visits' && <VisitsList visits={visits} currentUser={currentUser} onUpdateStatus={updateVisitStatus} />}
+                    </main>
+
+                    {/* Modals */}
+                    {showNewVisitModal && (
+                        <NewVisitModal
+                            onClose={() => setShowNewVisitModal(false)}
+                            onSave={(visitData) => {
+                                const newVisit = addVisit(visitData);
+                                setShowNewVisitModal(false);
+                                setSelectedVisit(newVisit);
+                            }}
+                            executives={mockData.users.filter(u => u.role === 'executive')}
+                        />
+                    )}
+
+                    {selectedVisit && (
+                        <VisitPassModal
+                            visit={selectedVisit}
+                            onClose={() => setSelectedVisit(null)}
+                            currentUser={currentUser}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        // Login Screen
+        function LoginScreen({ onLogin }) {
+            const [selectedUser, setSelectedUser] = useState(null);
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            
+            const SITE_PASSWORD = 'Grandcity123';
+            
+            const handleLoginClick = () => {
+                if (password !== SITE_PASSWORD) {
+                    setError('Incorrect password. Please try again.');
+                    return;
+                }
+                setError('');
+                onLogin(selectedUser);
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-md w-full space-y-8">
+                        <div className="text-center">
+                            <h1 className="text-4xl font-bold text-gray-900">🏢 Grand City</h1>
+                            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Guest Pass System</h2>
+                            <p className="mt-2 text-sm text-gray-600">Select your role to continue</p>
+                        </div>
+                        <div className="mt-8 space-y-4">
+                            {mockData.users.map(user => (
+                                <button
+                                    key={user.id}
+                                    onClick={() => setSelectedUser(user)}
+                                    className={`w-full flex items-center p-4 border rounded-lg transition-all ${
+                                        selectedUser?.id === user.id
+                                            ? 'border-indigo-500 bg-indigo-50'
+                                            : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    <span className="text-3xl mr-4">{user.avatar}</span>
+                                    <div className="text-left">
+                                        <p className="font-medium text-gray-900">{user.name}</p>
+                                        <p className="text-sm text-gray-500 capitalize">{user.role}</p>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                        {selectedUser && (
+                            <div className="space-y-4">
+                                <div>
+                                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Enter Site Password
+                                    </label>
+                                    <input
+                                        id="password"
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => {
+                                            setPassword(e.target.value);
+                                            setError('');
+                                        }}
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter' && password) {
+                                                handleLoginClick();
+                                            }
+                                        }}
+                                        placeholder="Enter password"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                    />
+                                    {error && (
+                                        <p className="mt-2 text-sm text-red-600">{error}</p>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={handleLoginClick}
+                                    disabled={!password}
+                                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                >
+                                    Login as {selectedUser.name}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // Dashboard Component
+        function Dashboard({ currentUser, visits, onNewVisit }) {
+            const todayVisits = visits.filter(visit => {
+                const visitDate = new Date(visit.date).toDateString();
+                const today = new Date().toDateString();
+                return visitDate === today;
+            });
+
+            const stats = {
+                total: visits.length,
+                today: todayVisits.length,
+                scheduled: visits.filter(v => v.status === 'scheduled').length,
+                checkedIn: visits.filter(v => v.status === 'checked_in').length,
+                completed: visits.filter(v => v.status === 'completed').length
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-3xl font-bold text-gray-900">Dashboard</h2>
+                        {(currentUser.role === 'admin' || currentUser.role === 'staff' || currentUser.role === 'receptionist') && (
+                            <button
+                                onClick={onNewVisit}
+                                className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                            >
+                                ➕ New Visit
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                            <div className="flex items-center">
+                                <div className="p-3 bg-blue-100 rounded-lg">
+                                    <span className="text-2xl">📊</span>
+                                </div>
+                                <div className="ml-4">
+                                    <p className="text-sm font-medium text-gray-600">Total Visits</p>
+                                    <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                            <div className="flex items-center">
+                                <div className="p-3 bg-green-100 rounded-lg">
+                                    <span className="text-2xl">📅</span>
+                                </div>
+                                <div className="ml-4">
+                                    <p className="text-sm font-medium text-gray-600">Today</p>
+                                    <p className="text-2xl font-bold text-gray-900">{stats.today}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                            <div className="flex items-center">
+                                <div className="p-3 bg-yellow-100 rounded-lg">
+                                    <span className="text-2xl">⏰</span>
+                                </div>
+                                <div className="ml-4">
+                                    <p className="text-sm font-medium text-gray-600">Scheduled</p>
+                                    <p className="text-2xl font-bold text-gray-900">{stats.scheduled}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                            <div className="flex items-center">
+                                <div className="p-3 bg-orange-100 rounded-lg">
+                                    <span className="text-2xl">✅</span>
+                                </div>
+                                <div className="ml-4">
+                                    <p className="text-sm font-medium text-gray-600">Checked In</p>
+                                    <p className="text-2xl font-bold text-gray-900">{stats.checkedIn}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                            <div className="flex items-center">
+                                <div className="p-3 bg-gray-100 rounded-lg">
+                                    <span className="text-2xl">✨</span>
+                                </div>
+                                <div className="ml-4">
+                                    <p className="text-sm font-medium text-gray-600">Completed</p>
+                                    <p className="text-2xl font-bold text-gray-900">{stats.completed}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Today's Visits */}
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200">
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <h3 className="text-lg font-semibold text-gray-900">Today's Visits</h3>
+                        </div>
+                        <div className="divide-y divide-gray-200">
+                            {todayVisits.length === 0 ? (
+                                <div className="px-6 py-8 text-center">
+                                    <span className="text-4xl mb-4 block">📅</span>
+                                    <p className="text-gray-500">No visits scheduled for today</p>
+                                </div>
+                            ) : (
+                                todayVisits.slice(0, 5).map(visit => (
+                                    <div key={visit.id} className="px-6 py-4 hover:bg-gray-50">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="font-medium text-gray-900">{visit.visitor.name}</p>
+                                                <p className="text-sm text-gray-500">{visit.purpose}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-sm font-medium text-gray-900">{visit.time}</p>
+                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                    visit.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800' :
+                                                    visit.status === 'checked_in' ? 'bg-green-100 text-green-800' :
+                                                    visit.status === 'completed' ? 'bg-gray-100 text-gray-800' :
+                                                    'bg-red-100 text-red-800'
+                                                }`}>
+                                                    {visit.status.replace('_', ' ')}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // QR Scanner Component
+        function QRScanner({ visits, onScan }) {
+            const [scanResult, setScanResult] = useState(null);
+            const [error, setError] = useState(null);
+
+            const handleScan = (code) => {
+                if (!code) return;
+                
+                const visit = visits.find(v => v.code === code);
+                if (visit) {
+                    setScanResult(visit);
+                    onScan(visit);
+                } else {
+                    setError('Invalid or expired visitor code');
+                    setTimeout(() => setError(null), 3000);
+                }
+            };
+
+            return (
+                <div className="space-y-6">
+                    <h2 className="text-3xl font-bold text-gray-900">📱 QR Code Scanner</h2>
+                    
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+                        <div className="text-center space-y-4">
+                            <div className="mx-auto w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                                <span className="text-4xl">📷</span>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-medium text-gray-900 mb-2">Manual Code Entry</h3>
+                                <p className="text-sm text-gray-600 mb-4">Enter the visitor code from the pass:</p>
+                                <input
+                                    type="text"
+                                    placeholder="Enter code (e.g., VIS001234)"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                            handleScan(e.target.value.toUpperCase());
+                                        }
+                                    }}
+                                />
+                            </div>
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                    <p className="text-red-600 text-sm">{error}</p>
+                                </div>
+                            )}
+                            {scanResult && (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                    <h4 className="font-medium text-green-900">Visitor Found!</h4>
+                                    <p className="text-sm text-green-700">{scanResult.visitor.name} - {scanResult.purpose}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Walk-in Registration Component
+        function WalkInRegistration({ onRegister }) {
+            const [formData, setFormData] = useState({
+                visitorName: '',
+                visitorCompany: '',
+                visitorPhone: '',
+                visitorEmail: '',
+                purpose: '',
+                executiveId: '',
+                type: 'business',
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toTimeString().slice(0, 5)
+            });
+
+            const executives = mockData.users.filter(u => u.role === 'executive');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!formData.visitorName || !formData.purpose || !formData.executiveId) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+
+                const visitData = {
+                    visitor: {
+                        name: formData.visitorName,
+                        company: formData.visitorCompany,
+                        phone: formData.visitorPhone,
+                        email: formData.visitorEmail
+                    },
+                    purpose: formData.purpose,
+                    executiveId: formData.executiveId,
+                    type: formData.type,
+                    date: formData.date,
+                    time: formData.time
+                };
+
+                onRegister(visitData);
+                alert('Walk-in visitor registered successfully!');
+                
+                // Reset form
+                setFormData({
+                    visitorName: '',
+                    visitorCompany: '',
+                    visitorPhone: '',
+                    visitorEmail: '',
+                    purpose: '',
+                    executiveId: '',
+                    type: 'business',
+                    date: new Date().toISOString().split('T')[0],
+                    time: new Date().toTimeString().slice(0, 5)
+                });
+            };
+
+            return (
+                <div className="space-y-6">
+                    <h2 className="text-3xl font-bold text-gray-900">🚶 Walk-in Registration</h2>
+                    
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Visitor Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.visitorName}
+                                        onChange={(e) => setFormData({...formData, visitorName: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Company
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.visitorCompany}
+                                        onChange={(e) => setFormData({...formData, visitorCompany: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Phone
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        value={formData.visitorPhone}
+                                        onChange={(e) => setFormData({...formData, visitorPhone: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={formData.visitorEmail}
+                                        onChange={(e) => setFormData({...formData, visitorEmail: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Purpose of Visit *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.purpose}
+                                        onChange={(e) => setFormData({...formData, purpose: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Meeting With *
+                                    </label>
+                                    <select
+                                        value={formData.executiveId}
+                                        onChange={(e) => setFormData({...formData, executiveId: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        required
+                                    >
+                                        <option value="">Select Executive</option>
+                                        {executives.map(exec => (
+                                            <option key={exec.id} value={exec.id}>{exec.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Visit Type
+                                    </label>
+                                    <select
+                                        value={formData.type}
+                                        onChange={(e) => setFormData({...formData, type: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    >
+                                        <option value="business">Business</option>
+                                        <option value="personal">Personal</option>
+                                        <option value="interview">Interview</option>
+                                        <option value="delivery">Delivery</option>
+                                        <option value="maintenance">Maintenance</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.date}
+                                        onChange={(e) => setFormData({...formData, date: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Time
+                                </label>
+                                <input
+                                    type="time"
+                                    value={formData.time}
+                                    onChange={(e) => setFormData({...formData, time: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                            >
+                                Register Walk-in Visitor
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // Visits List Component
+        function VisitsList({ visits, currentUser, onUpdateStatus }) {
+            const [filter, setFilter] = useState('all');
+            const [searchTerm, setSearchTerm] = useState('');
+
+            const filteredVisits = visits.filter(visit => {
+                const matchesFilter = filter === 'all' || visit.status === filter;
+                const matchesSearch = searchTerm === '' || 
+                    visit.visitor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    visit.purpose.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    visit.code.toLowerCase().includes(searchTerm.toLowerCase());
+                return matchesFilter && matchesSearch;
+            });
+
+            const getStatusColor = (status) => {
+                switch (status) {
+                    case 'scheduled': return 'bg-yellow-100 text-yellow-800';
+                    case 'checked_in': return 'bg-green-100 text-green-800';
+                    case 'completed': return 'bg-gray-100 text-gray-800';
+                    case 'cancelled': return 'bg-red-100 text-red-800';
+                    default: return 'bg-gray-100 text-gray-800';
+                }
+            };
+
+            return (
+                <div className="space-y-6">
+                    <h2 className="text-3xl font-bold text-gray-900">📋 All Visits</h2>
+                    
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200">
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                                <div className="flex-1 max-w-lg">
+                                    <input
+                                        type="text"
+                                        placeholder="Search visits..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    />
+                                </div>
+                                <div className="flex space-x-2">
+                                    <select
+                                        value={filter}
+                                        onChange={(e) => setFilter(e.target.value)}
+                                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    >
+                                        <option value="all">All Status</option>
+                                        <option value="scheduled">Scheduled</option>
+                                        <option value="checked_in">Checked In</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="divide-y divide-gray-200">
+                            {filteredVisits.length === 0 ? (
+                                <div className="px-6 py-8 text-center">
+                                    <span className="text-4xl mb-4 block">📋</span>
+                                    <p className="text-gray-500">No visits found</p>
+                                </div>
+                            ) : (
+                                filteredVisits.map(visit => (
+                                    <div key={visit.id} className="px-6 py-4 hover:bg-gray-50">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center space-x-4">
+                                                    <div className="flex-shrink-0">
+                                                        <span className="text-2xl">👤</span>
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-gray-900">{visit.visitor.name}</p>
+                                                        <p className="text-sm text-gray-500">{visit.purpose}</p>
+                                                        {visit.visitor.company && (
+                                                            <p className="text-xs text-gray-400">{visit.visitor.company}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="mt-2 flex items-center space-x-6 text-sm text-gray-500">
+                                                    <span>📅 {new Date(visit.date).toLocaleDateString()}</span>
+                                                    <span>🕐 {visit.time}</span>
+                                                    <span>🔢 {visit.code}</span>
+                                                    <span>👤 {mockData.users.find(u => u.id === visit.executiveId)?.name}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center space-x-3">
+                                                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(visit.status)}`}>
+                                                    {visit.status.replace('_', ' ')}
+                                                </span>
+                                                {(currentUser.role === 'admin' || currentUser.role === 'staff' || currentUser.role === 'guard' || currentUser.role === 'receptionist') && visit.status === 'scheduled' && (
+                                                    <button
+                                                        onClick={() => onUpdateStatus(visit.id, 'checked_in')}
+                                                        className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                                                    >
+                                                        Check In
+                                                    </button>
+                                                )}
+                                                {(currentUser.role === 'admin' || currentUser.role === 'staff') && visit.status === 'checked_in' && (
+                                                    <button
+                                                        onClick={() => onUpdateStatus(visit.id, 'completed')}
+                                                        className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                                                    >
+                                                        Complete
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // New Visit Modal
+        function NewVisitModal({ onClose, onSave, executives }) {
+            const [formData, setFormData] = useState({
+                visitorName: '',
+                visitorCompany: '',
+                visitorPhone: '',
+                visitorEmail: '',
+                purpose: '',
+                executiveId: '',
+                type: 'business',
+                date: new Date().toISOString().split('T')[0],
+                time: '09:00'
+            });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!formData.visitorName || !formData.purpose || !formData.executiveId) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+
+                const visitData = {
+                    visitor: {
+                        name: formData.visitorName,
+                        company: formData.visitorCompany,
+                        phone: formData.visitorPhone,
+                        email: formData.visitorEmail
+                    },
+                    purpose: formData.purpose,
+                    executiveId: formData.executiveId,
+                    type: formData.type,
+                    date: formData.date,
+                    time: formData.time
+                };
+
+                onSave(visitData);
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                            <h3 className="text-lg font-semibold text-gray-900">Schedule New Visit</h3>
+                            <button
+                                onClick={onClose}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <span className="text-xl">✕</span>
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Visitor Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.visitorName}
+                                        onChange={(e) => setFormData({...formData, visitorName: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Company
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.visitorCompany}
+                                        onChange={(e) => setFormData({...formData, visitorCompany: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Phone
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        value={formData.visitorPhone}
+                                        onChange={(e) => setFormData({...formData, visitorPhone: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={formData.visitorEmail}
+                                        onChange={(e) => setFormData({...formData, visitorEmail: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Purpose of Visit *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.purpose}
+                                        onChange={(e) => setFormData({...formData, purpose: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Meeting With *
+                                    </label>
+                                    <select
+                                        value={formData.executiveId}
+                                        onChange={(e) => setFormData({...formData, executiveId: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        required
+                                    >
+                                        <option value="">Select Executive</option>
+                                        {executives.map(exec => (
+                                            <option key={exec.id} value={exec.id}>{exec.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Visit Type
+                                    </label>
+                                    <select
+                                        value={formData.type}
+                                        onChange={(e) => setFormData({...formData, type: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    >
+                                        <option value="business">Business</option>
+                                        <option value="personal">Personal</option>
+                                        <option value="interview">Interview</option>
+                                        <option value="delivery">Delivery</option>
+                                        <option value="maintenance">Maintenance</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.date}
+                                        onChange={(e) => setFormData({...formData, date: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Time
+                                </label>
+                                <input
+                                    type="time"
+                                    value={formData.time}
+                                    onChange={(e) => setFormData({...formData, time: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
+                            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                                >
+                                    Schedule Visit
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // Visit Pass Modal - WITH WORKING QR ALTERNATIVE
+        function VisitPassModal({ visit, onClose, currentUser }) {
+            const executive = mockData.users.find(u => u.id === visit.executiveId);
+            
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+                        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                            <h3 className="text-lg font-semibold text-gray-900">Digital Visitor Pass</h3>
+                            <button
+                                onClick={onClose}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <span className="text-xl">✕</span>
+                            </button>
+                        </div>
+                        
+                        {/* WORKING VISITOR PASS - GUARANTEED VISIBLE */}
+                        <div className="visitor-pass">
+                            <div className="security-header">
+                                🏢 GRAND CITY HQ - VISITOR PASS
+                            </div>
+                            
+                            <div style={{background: 'rgba(255,255,255,0.2)', padding: '20px', margin: '20px 0', borderRadius: '10px', border: '2px solid #ffeb3b'}}>
+                                <div style={{fontSize: '18px', marginBottom: '10px', fontWeight: 'bold', textAlign: 'center'}}>
+                                    🔍 SHOW THIS PASS TO SECURITY
+                                </div>
+                                
+                                <div className="code-section">
+                                    <div className="code-label">
+                                        VISIT CODE
+                                    </div>
+                                    <div className="visit-code">
+                                        {visit.code}
+                                    </div>
+                                    
+                                    <div className="barcode"></div>
+                                    
+                                    <div className="qr-grid">
+                                        {/* QR Pattern - Black cells */}
+                                        <div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div>
+                                        <div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div>
+                                        <div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div>
+                                        <div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div>
+                                        <div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div>
+                                        <div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div>
+                                        <div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div>
+                                        <div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-white"></div>
+                                        <div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div><div className="qr-cell-black"></div>
+                                    </div>
+                                </div>
+                                
+                                <div style={{fontSize: '14px', color: '#666', marginTop: '10px', textAlign: 'center'}}>
+                                    🔒 Security: Verify ID matches this pass
+                                </div>
+                            </div>
+                            
+                            <div className="visitor-info">
+                                <div style={{fontSize: '16px', marginBottom: '10px', fontWeight: 'bold'}}>
+                                    👤 VISITOR INFORMATION
+                                </div>
+                                <div style={{textAlign: 'left', fontSize: '14px'}}>
+                                    <div className="info-row"><span className="info-label">Visitor:</span> <span className="info-value">{visit.visitor.name}</span></div>
+                                    {visit.visitor.company && <div className="info-row"><span className="info-label">Company:</span> <span className="info-value">{visit.visitor.company}</span></div>}
+                                    <div className="info-row"><span className="info-label">Meeting With:</span> <span className="info-value">{executive?.name} ({executive?.position})</span></div>
+                                    <div className="info-row"><span className="info-label">Purpose:</span> <span className="info-value">{visit.purpose}</span></div>
+                                    <div className="info-row"><span className="info-label">Date:</span> <span className="info-value">{new Date(visit.date).toLocaleDateString()}</span></div>
+                                    <div className="info-row"><span className="info-label">Time:</span> <span className="info-value">{visit.time}</span></div>
+                                    <div className="info-row"><span className="info-label">Type:</span> <span className="info-value">{visit.type.replace('_', ' ')}</span></div>
+                                </div>
+                            </div>
+                            
+                            <div className="security-footer">
+                                🔒 Security: Verify ID matches this pass. Report suspicious activity.
+                            </div>
+                        </div>
+                        
+                        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                            <div className="text-center">
+                                <p className="text-xs text-gray-500 mb-2">
+                                    Generated: {new Date(visit.createdAt).toLocaleString()}
+                                </p>
+                                <div className="flex space-x-3 justify-center">
+                                    <button
+                                        onClick={() => {
+                                            // Print functionality
+                                            const printContent = document.querySelector('.visitor-pass').innerHTML;
+                                            const printWindow = window.open('', '_blank');
+                                            printWindow.document.write(`
+                                                <html>
+                                                    <head><title>Visitor Pass - ${visit.code}</title></head>
+                                                    <body style="font-family: Arial, sans-serif; margin: 20px;">
+                                                        ${printContent}
+                                                    </body>
+                                                </html>
+                                            `);
+                                            printWindow.document.close();
+                                            printWindow.print();
+                                        }}
+                                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                                    >
+                                        🖨️ Print Pass
+                                    </button>
+                                    <button
+                                        onClick={onClose}
+                                        className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

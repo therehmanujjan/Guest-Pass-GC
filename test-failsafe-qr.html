@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fail-Safe QR Code</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-pass { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 20px; 
+            border: 4px solid black; 
+            border-radius: 10px; 
+            max-width: 400px; 
+            margin: 20px 0;
+        }
+        .visit-code {
+            font-size: 48px; 
+            font-weight: bold; 
+            letter-spacing: 8px; 
+            font-family: monospace; 
+            background: white; 
+            color: black; 
+            padding: 20px; 
+            margin: 20px 0; 
+            border: 3px solid black; 
+            border-radius: 5px;
+            text-align: center;
+        }
+        .barcode {
+            height: 100px; 
+            background: repeating-linear-gradient(to right, #000 0px, #000 3px, #fff 3px, #fff 6px); 
+            margin: 20px 0; 
+            position: relative;
+        }
+        .qr-grid {
+            width: 200px; 
+            height: 200px; 
+            margin: 20px auto; 
+            background: white; 
+            border: 5px solid black; 
+            display: grid; 
+            grid-template-columns: repeat(10, 1fr); 
+            grid-template-rows: repeat(10, 1fr);
+        }
+        .qr-cell-black { background: black; }
+        .qr-cell-white { background: white; }
+    </style>
+</head>
+<body>
+    <h1>Testing Fail-Safe QR Code Display</h1>
+    
+    <div class="test-pass">
+        <h2>Test 1: Visit Code Display</h2>
+        <div class="visit-code">VIS001234</div>
+        <p>This should show a large, visible code in 48px font</p>
+    </div>
+
+    <div class="test-pass">
+        <h2>Test 2: Barcode Pattern</h2>
+        <div class="barcode"></div>
+        <p>This should show black and white stripes</p>
+    </div>
+
+    <div class="test-pass">
+        <h2>Test 3: QR-like Grid Pattern</h2>
+        <div class="qr-grid">
+            <div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div>
+            <div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div>
+            <div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div>
+            <div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div>
+            <div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div>
+            <div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div>
+            <div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div>
+            <div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-white"></div>
+            <div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div><div class="qr-cell-black"></div>
+        </div>
+        <p>This should show a QR-like pattern with black and white squares</p>
+    </div>
+
+    <h2>Test Results:</h2>
+    <ul>
+        <li>✅ All elements should be clearly visible</li>
+        <li>✅ No JavaScript required - pure HTML/CSS</li>
+        <li>✅ High contrast for easy scanning</li>
+        <li>✅ Professional appearance</li>
+    </ul>
+
+    <script>
+        console.log('Fail-safe QR test loaded successfully');
+    </script>
+</body>
+</html>

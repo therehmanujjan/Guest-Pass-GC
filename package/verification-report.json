@@ -1,0 +1,351 @@
+{
+  "timestamp": "2025-12-07T10:27:17.310Z",
+  "version": "1.0.0",
+  "results": {
+    "passed": [
+      {
+        "type": "checksum_verification",
+        "filename": "guest-pass-system.html",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "guest-pass-system-clean.html",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "guest-pass-system-complete.html",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "shared-guest-pass-system.html",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "complete-guest-pass-system.html",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "babel.min.js",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "react.production.min.js",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "react-dom.production.min.js",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "qrcode.min.js",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "html2canvas.min.js",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "jsQR.js",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "supabase.min.js",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "tailwindcss.js",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "guest-pass-system-clean.css",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "guest-pass-system-complete.css",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "guest-pass-system-rebuilt.css",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "shared-guest-pass-system.css",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "README.md",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "DEPLOYMENT.md",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "USER_TRAINING_GUIDE.md",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "api-documentation.md",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "database-schema.md",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "security-rbac.md",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "technical-specifications.md",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "technical-specifications-detailed.md",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "guest-pass-system-overview.md",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "ui-ux-wireframes.md",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "implementation-roadmap.md",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "feature-matrix-analysis.md",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "test-results.md",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "package.json",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "vercel.json",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "webpack.config.js",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "docker-compose.yml",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "Dockerfile",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": ".versionrc",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": ".gitignore",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": ".env.example",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": ".env.development",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": ".env.staging",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": ".env.production",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "database_schema.sql",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "001_create_shared_tables.sql",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "002_create_guestpass_schema.sql",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "003_move_to_public_schema.sql",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "deploy.sh",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "deploy-shared.sh",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "deploy-production.sh",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "server.js",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "server-prod.js",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "checksum_verification",
+        "filename": "server-shared-prod.js",
+        "message": "Checksum verification passed"
+      },
+      {
+        "type": "directory_structure",
+        "directory": "assets",
+        "message": "Directory exists: assets"
+      },
+      {
+        "type": "directory_structure",
+        "directory": "assets/js",
+        "message": "Directory exists: assets/js"
+      },
+      {
+        "type": "directory_structure",
+        "directory": "assets/css",
+        "message": "Directory exists: assets/css"
+      },
+      {
+        "type": "directory_structure",
+        "directory": "assets/images",
+        "message": "Directory exists: assets/images"
+      },
+      {
+        "type": "directory_structure",
+        "directory": "resources",
+        "message": "Directory exists: resources"
+      },
+      {
+        "type": "directory_structure",
+        "directory": "resources/docs",
+        "message": "Directory exists: resources/docs"
+      },
+      {
+        "type": "directory_structure",
+        "directory": "resources/config",
+        "message": "Directory exists: resources/config"
+      },
+      {
+        "type": "directory_structure",
+        "directory": "resources/database",
+        "message": "Directory exists: resources/database"
+      },
+      {
+        "type": "directory_structure",
+        "directory": "resources/deployment",
+        "message": "Directory exists: resources/deployment"
+      },
+      {
+        "type": "dependency_check",
+        "library": "assets/js/babel.min.js",
+        "message": "Required library found: assets/js/babel.min.js"
+      },
+      {
+        "type": "dependency_check",
+        "library": "assets/js/react.production.min.js",
+        "message": "Required library found: assets/js/react.production.min.js"
+      },
+      {
+        "type": "dependency_check",
+        "library": "assets/js/react-dom.production.min.js",
+        "message": "Required library found: assets/js/react-dom.production.min.js"
+      },
+      {
+        "type": "dependency_check",
+        "library": "assets/js/qrcode.min.js",
+        "message": "Required library found: assets/js/qrcode.min.js"
+      },
+      {
+        "type": "dependency_check",
+        "library": "assets/js/html2canvas.min.js",
+        "message": "Required library found: assets/js/html2canvas.min.js"
+      },
+      {
+        "type": "dependency_check",
+        "library": "assets/js/jsQR.js",
+        "message": "Required library found: assets/js/jsQR.js"
+      },
+      {
+        "type": "security_header",
+        "file": "resources/config/vercel.json",
+        "message": "Security headers configured in resources/config/vercel.json"
+      }
+    ],
+    "failed": [],
+    "warnings": []
+  },
+  "summary": {
+    "totalPassed": 67,
+    "totalFailed": 0,
+    "totalWarnings": 0,
+    "overallStatus": "PASSED"
+  }
+}

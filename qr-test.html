@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./qrcode.min.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">QR Code Generation Test</h1>
+        
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test QR Code Generation</h2>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">Test Code:</label>
+                <input type="text" id="testCode" value="VISIT-12345" class="w-full p-2 border rounded">
+            </div>
+            
+            <button id="generateBtn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Generate QR Code
+            </button>
+            
+            <button id="checkLibraryBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 ml-2">
+                Check Library Status
+            </button>
+        </div>
+        
+        <div id="status" class="bg-gray-50 p-4 rounded mb-6"></div>
+        
+        <div id="qrResult" class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold mb-4">QR Code Result:</h3>
+            <div id="qrCodeContainer" class="flex justify-center"></div>
+        </div>
+    </div>
+
+    <script>
+        // Test QR code generation
+        function testQRGeneration() {
+            const statusEl = document.getElementById('status');
+            const qrContainer = document.getElementById('qrCodeContainer');
+            const testCode = document.getElementById('testCode').value;
+            
+            statusEl.innerHTML = '';
+            qrContainer.innerHTML = '';
+            
+            // Check if QRCode library is available
+            console.log('=== QR Code Test Started ===');
+            console.log('QRCode library status:', typeof QRCode);
+            console.log('QRCode object:', QRCode);
+            console.log('QRCode available methods:', typeof QRCode !== 'undefined' ? Object.keys(QRCode) : 'N/A');
+            
+            if (typeof QRCode === 'undefined') {
+                statusEl.innerHTML = '<div class="text-red-600">❌ QRCode library not loaded</div>';
+                console.log('❌ QRCode library not loaded');
+                return;
+            }
+            
+            try {
+                statusEl.innerHTML = '<div class="text-blue-600">🔄 Generating QR code...</div>';
+                console.log('🔄 Starting QR code generation...');
+                
+                // Test different QR code generation methods
+                if (QRCode.toCanvas) {
+                    console.log('✅ Found QRCode.toCanvas method');
+                    console.log('QRCode.toCanvas type:', typeof QRCode.toCanvas);
+                    
+                    const canvas = document.createElement('canvas');
+                    console.log('Created canvas element');
+                    
+                    QRCode.toCanvas(canvas, testCode, { 
+                        width: 200, 
+                        margin: 2,
+                        color: {
+                            dark: '#000000',
+                            light: '#FFFFFF'
+                        }
+                    }, (error) => {
+                        console.log('QRCode.toCanvas callback executed');
+                        console.log('Error:', error);
+                        
+                        if (error) {
+                            statusEl.innerHTML = '<div class="text-red-600">❌ QR generation error: ' + error.message + '</div>';
+                            console.log('❌ QR generation error:', error.message);
+                        } else {
+                            statusEl.innerHTML = '<div class="text-green-600">✅ QR code generated successfully using toCanvas</div>';
+                            console.log('✅ QR code generated successfully');
+                            qrContainer.appendChild(canvas);
+                        }
+                    });
+                } else if (QRCode.toDataURL) {
+                    console.log('✅ Found QRCode.toDataURL method');
+                    console.log('QRCode.toDataURL type:', typeof QRCode.toDataURL);
+                    
+                    QRCode.toDataURL(testCode, { width: 200 }, (error, url) => {
+                        console.log('QRCode.toDataURL callback executed');
+                        console.log('Error:', error, 'URL:', url ? 'generated' : 'none');
+                        
+                        if (error) {
+                            statusEl.innerHTML = '<div class="text-red-600">❌ QR generation error: ' + error.message + '</div>';
+                            console.log('❌ QR generation error:', error.message);
+                        } else {
+                            statusEl.innerHTML = '<div class="text-green-600">✅ QR code generated successfully using toDataURL</div>';
+                            console.log('✅ QR code generated successfully');
+                            const img = document.createElement('img');
+                            img.src = url;
+                            img.className = 'border';
+                            qrContainer.appendChild(img);
+                        }
+                    });
+                } else {
+                    console.log('✅ Using legacy QRCode constructor');
+                    
+                    try {
+                        const canvas = document.createElement('canvas');
+                        console.log('Created canvas element for legacy method');
+                        
+                        const qrCode = new QRCode(canvas, {
+                            text: testCode,
+                            width: 200,
+                            height: 200,
+                            colorDark: '#000000',
+                            colorLight: '#FFFFFF',
+                            correctLevel: QRCode.CorrectLevel.M
+                        });
+                        
+                        console.log('QRCode instance created:', qrCode);
+                        statusEl.innerHTML = '<div class="text-green-600">✅ QR code generated successfully using constructor</div>';
+                        console.log('✅ QR code generated successfully');
+                        qrContainer.appendChild(canvas);
+                    } catch (legacyError) {
+                        console.log('❌ Legacy QR generation error:', legacyError);
+                        statusEl.innerHTML = '<div class="text-red-600">❌ Legacy QR generation error: ' + legacyError.message + '</div>';
+                    }
+                }
+            } catch (e) {
+                statusEl.innerHTML = '<div class="text-red-600">❌ Exception: ' + e.message + '</div>';
+                console.error('❌ QR generation exception:', e);
+            }
+            
+            console.log('=== QR Code Test Completed ===');
+        }
+        
+        function checkLibraryStatus() {
+            const statusEl = document.getElementById('status');
+            
+            let status = '<h4 class="font-semibold mb-2">Library Status:</h4>';
+            status += '<div>QRCode type: ' + typeof QRCode + '</div>';
+            status += '<div>QRCode defined: ' + (typeof QRCode !== 'undefined') + '</div>';
+            
+            if (typeof QRCode !== 'undefined') {
+                status += '<div>QRCode.toCanvas: ' + (typeof QRCode.toCanvas !== 'undefined') + '</div>';
+                status += '<div>QRCode.toDataURL: ' + (typeof QRCode.toDataURL !== 'undefined') + '</div>';
+                status += '<div>QRCode constructor: ' + (typeof QRCode === 'function') + '</div>';
+                
+                console.log('QRCode methods:', Object.getOwnPropertyNames(QRCode));
+                console.log('QRCode.toCanvas:', QRCode.toCanvas);
+                console.log('QRCode.toDataURL:', QRCode.toDataURL);
+            }
+            
+            statusEl.innerHTML = status;
+        }
+        
+        document.getElementById('generateBtn').addEventListener('click', testQRGeneration);
+        document.getElementById('checkLibraryBtn').addEventListener('click', checkLibraryStatus);
+        
+        // Auto-check on load
+        window.addEventListener('load', () => {
+            checkLibraryStatus();
+        });
+    </script>
+</body>
+</html>

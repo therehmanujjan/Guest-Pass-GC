@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Force QR Test</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .qr-visible { border: 3px solid red; background: white; padding: 20px; margin: 20px 0; }
+        .debug-info { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const ForceQRTest = () => {
+            const [status, setStatus] = useState('Initializing...');
+            const [qrVisible, setQrVisible] = useState(false);
+            const containerRef = useRef(null);
+
+            const forceGenerateQR = async () => {
+                setStatus('Starting forced QR generation...');
+                
+                try {
+                    // Step 1: Check libraries
+                    setStatus('Checking QRCode library...');
+                    if (typeof QRCode === 'undefined') {
+                        throw new Error('QRCode library not loaded');
+                    }
+                    setStatus('✅ QRCode library found');
+
+                    // Step 2: Create visible container
+                    setStatus('Creating visible QR container...');
+                    const container = document.createElement('div');
+                    container.className = 'qr-visible';
+                    container.style.width = '300px';
+                    container.style.height = '300px';
+                    container.style.display = 'block';
+                    
+                    if (containerRef.current) {
+                        containerRef.current.appendChild(container);
+                    } else {
+                        document.body.appendChild(container);
+                    }
+                    setStatus('✅ Visible container created');
+
+                    // Step 3: Force QR generation with maximum debugging
+                    setStatus('Generating QR code with test data...');
+                    
+                    return new Promise((resolve) => {
+                        try {
+                            const testData = "FORCED_TEST_QR_12345";
+                            
+                            const qrCode = new QRCode(container, {
+                                text: testData,
+                                width: 256,
+                                height: 256,
+                                colorDark: '#000000',
+                                colorLight: '#FFFFFF',
+                                correctLevel: QRCode.CorrectLevel.H
+                            });
+
+                            setStatus('✅ QRCode instance created, waiting for render...');
+
+                            // Multiple checks with increasing delays
+                            setTimeout(() => {
+                                checkQRContent(container, '500ms');
+                            }, 500);
+
+                            setTimeout(() => {
+                                checkQRContent(container, '1000ms');
+                                resolve();
+                            }, 1000);
+
+                        } catch (error) {
+                            setStatus(`❌ QR creation error: ${error.message}`);
+                            resolve();
+                        }
+                    });
+
+                } catch (error) {
+                    setStatus(`❌ Overall error: ${error.message}`);
+                }
+            };
+
+            const checkQRContent = (container, timing) => {
+                setStatus(`Checking QR content at ${timing}...`);
+                
+                const canvas = container.querySelector('canvas');
+                const img = container.querySelector('img');
+                
+                if (canvas) {
+                    setStatus(`✅ Canvas found at ${timing}`);
+                    
+                    // Analyze pixels
+                    const ctx = canvas.getContext('2d');
+                    const imageData = ctx.getImageData(0, 0, 20, 20);
+                    let blackPixels = 0;
+                    let whitePixels = 0;
+                    
+                    for (let i = 0; i < imageData.data.length; i += 4) {
+                        const r = imageData.data[i];
+                        const g = imageData.data[i + 1];
+                        const b = imageData.data[i + 2];
+                        const a = imageData.data[i + 3];
+                        
+                        if (r < 50 && g < 50 && b < 50 && a > 200) blackPixels++;
+                        else if (r > 200 && g > 200 && b > 200 && a > 200) whitePixels++;
+                    }
+                    
+                    setStatus(`✅ Pixel analysis - Black: ${blackPixels}, White: ${whitePixels}`);
+                    
+                    if (blackPixels > 0) {
+                        setStatus('🎉 SUCCESS: QR pattern detected!');
+                        setQrVisible(true);
+                        
+                        // Convert to data URL for display
+                        const dataUrl = canvas.toDataURL('image/png');
+                        setStatus(`✅ Data URL generated: ${dataUrl.length} characters`);
+                    }
+                } else if (img) {
+                    setStatus(`✅ Image found at ${timing}: ${img.src.substring(0, 50)}...`);
+                    setQrVisible(true);
+                } else {
+                    setStatus(`❌ No QR content found at ${timing}`);
+                }
+            };
+
+            useEffect(() => {
+                forceGenerateQR();
+            }, []);
+
+            return (
+                <div>
+                    <h1>Force QR Generation Test</h1>
+                    <div className="debug-info">
+                        <h3>Status: {status}</h3>
+                    </div>
+                    <div ref={containerRef}></div>
+                    {qrVisible && (
+                        <div className="debug-info" style={{backgroundColor: '#d4edda'}}>
+                            ✅ QR Code should be visible above in the red-bordered container!
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        ReactDOM.render(<ForceQRTest />, document.getElementById('root'));
+    </script>
+</body>
+</html>

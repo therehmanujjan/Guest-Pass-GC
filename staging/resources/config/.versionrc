@@ -1,0 +1,50 @@
+{
+  "types": [
+    {"type": "feat", "section": "Features"},
+    {"type": "fix", "section": "Bug Fixes"},
+    {"type": "docs", "section": "Documentation"},
+    {"type": "style", "section": "Styles"},
+    {"type": "refactor", "section": "Code Refactoring"},
+    {"type": "perf", "section": "Performance Improvements"},
+    {"type": "test", "section": "Tests"},
+    {"type": "build", "section": "Build System"},
+    {"type": "ci", "section": "Continuous Integration"},
+    {"type": "chore", "section": "Chores"},
+    {"type": "revert", "section": "Reverts"}
+  ],
+  "commitUrlFormat": "https://github.com/organization/guest-pass-system/commit/{{hash}}",
+  "compareUrlFormat": "https://github.com/organization/guest-pass-system/compare/{{previousTag}}...{{currentTag}}",
+  "issueUrlFormat": "https://github.com/organization/guest-pass-system/issues/{{id}}",
+  "userUrlFormat": "https://github.com/{{user}}",
+  "releaseCommitMessageFormat": "chore(release): {{currentTag}}",
+  "issuePrefixes": ["#", "GH-"],
+  "bumpFiles": [
+    {
+      "filename": "package.json",
+      "type": "json"
+    },
+    {
+      "filename": "VERSION",
+      "type": "json"
+    }
+  ],
+  "packageFiles": [
+    {
+      "filename": "package.json",
+      "type": "json"
+    }
+  ],
+  "tagPrefix": "v",
+  "prerelease": false,
+  "commitAll": true,
+  "commitArgs": [],
+  "silent": false,
+  "dryRun": false,
+  "gitTagFallback": true,
+  "path": ".",
+  "skip": {
+    "commit": false,
+    "tag": false,
+    "bump": false
+  }
+}

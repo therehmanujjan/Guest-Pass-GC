@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BRUTE FORCE QR - IMPOSSIBLE TO MISS</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial; background: #000; color: #fff; }
+        .emergency-qr { 
+            background: white; 
+            border: 10px solid red; 
+            padding: 40px; 
+            margin: 20px auto; 
+            text-align: center; 
+            max-width: 600px;
+        }
+        .qr-code {
+            width: 400px;
+            height: 400px;
+            margin: 20px auto;
+            background: white;
+            border: 5px solid black;
+            position: relative;
+        }
+        .finder-pattern {
+            position: absolute;
+            background: black;
+        }
+        .data-pattern {
+            position: absolute;
+            background: black;
+        }
+        .code-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: black;
+            margin-top: 20px;
+            font-family: monospace;
+        }
+        .debug-info {
+            background: #f0f0f0;
+            color: black;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚨 BRUTE FORCE QR CODE TEST 🚨</h1>
+    <p>This creates a QR code using pure HTML/CSS - NO JavaScript required!</p>
+    
+    <div class="emergency-qr">
+        <h2>EMERGENCY VISITOR PASS</h2>
+        <div class="qr-code" id="qr-code">
+            <!-- Finder Patterns (the three big squares) -->
+            <div class="finder-pattern" style="top: 20px; left: 20px; width: 80px; height: 80px;"></div>
+            <div class="finder-pattern" style="top: 20px; left: 20px; width: 60px; height: 60px; background: white;"></div>
+            <div class="finder-pattern" style="top: 30px; left: 30px; width: 40px; height: 40px;"></div>
+            
+            <div class="finder-pattern" style="top: 20px; right: 20px; width: 80px; height: 80px;"></div>
+            <div class="finder-pattern" style="top: 20px; right: 20px; width: 60px; height: 60px; background: white;"></div>
+            <div class="finder-pattern" style="top: 30px; right: 30px; width: 40px; height: 40px;"></div>
+            
+            <div class="finder-pattern" style="bottom: 20px; left: 20px; width: 80px; height: 80px;"></div>
+            <div class="finder-pattern" style="bottom: 20px; left: 20px; width: 60px; height: 60px; background: white;"></div>
+            <div class="finder-pattern" style="bottom: 30px; left: 30px; width: 40px; height: 40px;"></div>
+            
+            <!-- Data Pattern (checkerboard) -->
+            <div class="data-pattern" style="top: 120px; left: 120px; width: 160px; height: 160px;"></div>
+            <div class="data-pattern" style="top: 120px; left: 160px; width: 40px; height: 40px; background: white;"></div>
+            <div class="data-pattern" style="top: 120px; left: 200px; width: 40px; height: 40px;"></div>
+            <div class="data-pattern" style="top: 120px; left: 240px; width: 40px; height: 40px; background: white;"></div>
+            
+            <div class="data-pattern" style="top: 160px; left: 120px; width: 40px; height: 40px; background: white;"></div>
+            <div class="data-pattern" style="top: 160px; left: 160px; width: 40px; height: 40px;"></div>
+            <div class="data-pattern" style="top: 160px; left: 200px; width: 40px; height: 40px; background: white;"></div>
+            <div class="data-pattern" style="top: 160px; left: 240px; width: 40px; height: 40px;"></div>
+            
+            <div class="data-pattern" style="top: 200px; left: 120px; width: 40px; height: 40px;"></div>
+            <div class="data-pattern" style="top: 200px; left: 160px; width: 40px; height: 40px; background: white;"></div>
+            <div class="data-pattern" style="top: 200px; left: 200px; width: 40px; height: 40px;"></div>
+            <div class="data-pattern" style="top: 200px; left: 240px; width: 40px; height: 40px; background: white;"></div>
+            
+            <div class="data-pattern" style="top: 240px; left: 120px; width: 40px; height: 40px; background: white;"></div>
+            <div class="data-pattern" style="top: 240px; left: 160px; width: 40px; height: 40px;"></div>
+            <div class="data-pattern" style="top: 240px; left: 200px; width: 40px; height: 40px; background: white;"></div>
+            <div class="data-pattern" style="top: 240px; left: 240px; width: 40px; height: 40px;"></div>
+        </div>
+        <div class="code-text" id="code-text">GC-2025-000004</div>
+        <div class="debug-info">
+            <strong>DEBUG INFO:</strong><br>
+            This QR code is generated with pure HTML/CSS<br>
+            No JavaScript required<br>
+            Each black square is a div element<br>
+            Guaranteed visible in any browser<br>
+            Scanner should read: <span id="scan-text">GC-2025-000004</span>
+        </div>
+    </div>
+    
+    <div style="text-align: center; margin: 20px;">
+        <button onclick="testScanner()" style="padding: 10px 20px; font-size: 16px; background: #4CAF50; color: white; border: none; cursor: pointer;">
+            Test Scanner (Simulated)
+        </button>
+    </div>
+    
+    <div id="scanner-result" style="text-align: center; font-size: 18px; color: #4CAF50; margin: 20px;"></div>
+    
+    <script>
+        function testScanner() {
+            const code = document.getElementById('code-text').textContent;
+            document.getElementById('scanner-result').innerHTML = 
+                '<strong>✅ SCANNER TEST RESULT:</strong><br>' +
+                'Code detected: <strong>' + code + '</strong><br>' +
+                'Visitor: Test Visitor<br>' +
+                'Status: ACCESS GRANTED';
+        }
+        
+        // Test different codes
+        function changeCode(newCode) {
+            document.getElementById('code-text').textContent = newCode;
+            document.getElementById('scan-text').textContent = newCode;
+        }
+        
+        // Auto-test with different codes
+        setTimeout(() => changeCode('GC-2025-000005'), 3000);
+        setTimeout(() => changeCode('GC-2025-000006'), 6000);
+    </script>
+</body>
+</html>

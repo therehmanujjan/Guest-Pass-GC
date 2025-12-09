@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  executive
+  staff
+  guard
+  receptionist
+  admin
+}
+
+enum ExecutivePosition {
+  md_partner
+  chairman_partner
+  ceo
+  director_operations
+  director_faisalabad
+  cfo
+  consultant
+  tech_consultant
+}
+
+enum VisitType {
+  scheduled
+  walk_in
+  recurring
+}
+
+enum VisitStatus {
+  scheduled
+  approved
+  checked_in
+  checked_out
+  cancelled
+  no_show
+  rejected
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+  auto_approved
+}
+
+enum AuditAction {
+  create
+  update
+  delete
+  approve
+  reject
+  checkin
+  checkout
+  login
+  logout
+}
+
+enum NotificationType {
+  visit_request
+  visit_approved
+  visit_rejected
+  visitor_arrived
+  visitor_waiting
+  visit_reminder
+  system_alert
+}
+
+enum NotificationChannel {
+  email
+  sms
+  push
+  in_app
+}
+
+model User {
+  id                     String    @id @default(uuid()) @db.Uuid
+  email                  String    @unique @db.VarChar(255)
+  passwordHash            String?   @map("password_hash") @db.VarChar(255)
+  fullName                String    @map("full_name") @db.VarChar(255)
+  phone                  String?   @db.VarChar(20)
+  role                   UserRole  @db.Enum("user_role", UserRole)
+  executiveId             String?   @map("executive_id") @db.Uuid
+  department             String?   @db.VarChar(100)
+  isActive                Boolean   @default(true) @map("is_active

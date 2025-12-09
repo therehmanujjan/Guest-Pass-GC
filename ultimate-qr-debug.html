@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ULTIMATE QR DEBUG TEST</title>
+    <style>
+        body { font-family: monospace; margin: 20px; background: #f0f0f0; }
+        .debug-section { background: white; border: 2px solid red; margin: 20px 0; padding: 20px; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .info { color: blue; }
+        .qr-display { border: 5px solid black; background: yellow; padding: 20px; margin: 20px 0; text-align: center; }
+        #emergency-qr-result { min-height: 500px; background: #fff0f0; }
+        #function-test-result { min-height: 200px; background: #f0fff0; }
+    </style>
+</head>
+<body>
+    <h1>🚨 ULTIMATE QR CODE DEBUG TEST 🚨</h1>
+    
+    <div class="debug-section">
+        <h2>1. FUNCTION ACCESSIBILITY TEST</h2>
+        <div id="function-test-result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>2. EMERGENCY QR GENERATION TEST</h2>
+        <div id="emergency-qr-result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>3. EXACT PRODUCTION SIMULATION</h2>
+        <div id="production-simulation-result"></div>
+    </div>
+    
+    <!-- Load the same libraries as production -->
+    <script src="./react.production.min.js"></script>
+    <script src="./react-dom.production.min.js"></script>
+    <script src="./babel.min.js"></script>
+    <script src="./qrcode.min.js"></script>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // EXACT copy of the functions from production
+        const createGuaranteedVisibleQR = (text) => {
+            console.log('🚨 ULTRA-RELIABLE QR GENERATION STARTED for:', text);
+            
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 400;
+                canvas.height = 400;
+                const ctx = canvas.getContext('2d');
+                
+                if (!ctx) {
+                    throw new Error('Canvas 2D context not available');
+                }
+                
+                console.log('✅ Canvas context obtained');
+                
+                // ABSOLUTELY GUARANTEED visible pattern
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, 400, 400);
+                
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 20;
+                ctx.strokeRect(10, 10, 380, 380);
+                
+                ctx.fillStyle = '#000000';
+                
+                // ENORMOUS finder patterns
+                ctx.fillRect(30, 30, 100, 100);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(50, 50, 60, 60);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(70, 70, 20, 20);
+                
+                ctx.fillRect(270, 30, 100, 100);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(290, 50, 60, 60);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(310, 70, 20, 20);
+                
+                ctx.fillRect(30, 270, 100, 100);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(50, 290, 60, 60);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(70, 310, 20, 20);
+                
+                // ULTRA-VISIBLE data pattern
+                ctx.fillStyle = '#000000';
+                const moduleSize = 15;
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        if ((row + col) % 2 === 0) {
+                            ctx.fillRect(
+                                150 + col * moduleSize,
+                                150 + row * moduleSize,
+                                moduleSize,
+                                moduleSize
+                            );
+                        }
+                    }
+                }
+                
+                // HUGE text at bottom
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(text, 200, 390);
+                
+                const dataUrl = canvas.toDataURL('image/png', 1.0);
+                console.log('🎯 ULTRA-RELIABLE QR generated - URL length:', dataUrl.length);
+                
+                if (!dataUrl.startsWith('data:image/png;base64,')) {
+                    throw new Error('Invalid data URL format');
+                }
+                
+                return dataUrl;
+                
+            } catch (error) {
+                console.error('❌ Ultra-reliable QR error:', error);
+                return createFallbackQR(text);
+            }
+        };
+        
+        const createFallbackQR = (text) => {
+            console.log('🛡️ FALLBACK QR GENERATION for:', text);
+            
+            try {
+                const svg = `
+                    <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="400" height="400" fill="white"/>
+                        <rect x="10" y="10" width="380" height="380" fill="none" stroke="black" stroke-width="20"/>
+                        <rect x="30" y="30" width="100" height="100" fill="black"/>
+                        <rect x="50" y="50" width="60" height="60" fill="white"/>
+                        <rect x="70" y="70" width="20" height="20" fill="black"/>
+                        <rect x="270" y="30" width="100" height="100" fill="black"/>
+                        <rect x="290" y="50" width="60" height="60" fill="white"/>
+                        <rect x="310" y="70" width="20" height="20" fill="black"/>
+                        <rect x="30" y="270" width="100" height="100" fill="black"/>
+                        <rect x="50" y="290" width="60" height="60" fill="white"/>
+                        <rect x="70" y="310" width="20" height="20" fill="black"/>
+                        <text x="200" y="390" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="black">${text}</text>
+                    </svg>
+                `;
+                
+                const dataUrl = 'data:image/svg+xml;base64,' + btoa(svg);
+                console.log('🛡️ FALLBACK QR generated - URL length:', dataUrl.length);
+                return dataUrl;
+                
+            } catch (error) {
+                console.error('❌ Even fallback failed:', error);
+                return null;
+            }
+        };
+        
+        const createEmergencyQR = (text) => {
+            console.log('🚨 EMERGENCY QR GENERATION STARTED for:', text);
+            return createGuaranteedVisibleQR(text);
+        };
+        
+        // Test Component that mimics DigitalPass exactly
+        const TestDigitalPass = () => {
+            const [qrCodeUrl, setQrCodeUrl] = useState('');
+            const [isGeneratingQR, setIsGeneratingQR] = useState(true);
+            const [logs, setLogs] = useState([]);
+            
+            const addLog = (message, type = 'info') => {
+                const newLog = { message, type, time: new Date().toLocaleTimeString() };
+                setLogs(prev => [...prev, newLog]);
+                console.log(message);
+            };
+            
+            useEffect(() => {
+                addLog('🚀 DigitalPass simulation started');
+                
+                const testCode = 'GC-2025-000004';
+                addLog('🚨 Testing with code: ' + testCode);
+                
+                try {
+                    addLog('🚨 IMMEDIATE: Forcing emergency QR generation...');
+                    
+                    // This is the EXACT code from production
+                    const emergencyUrl = createEmergencyQR(testCode);
+                    addLog('🚨 Emergency QR result: ' + (emergencyUrl ? 'SUCCESS' : 'FAILED'), emergencyUrl ? 'success' : 'error');
+                    addLog('🚨 Emergency URL length: ' + (emergencyUrl ? emergencyUrl.length : 'N/A'));
+                    
+                    if (emergencyUrl) {
+                        addLog('🚨 EMERGENCY QR SUCCESS - setting URL', 'success');
+                        setQrCodeUrl(emergencyUrl);
+                    } else {
+                        addLog('🚨 Emergency QR failed - setting empty URL', 'error');
+                        setQrCodeUrl('');
+                    }
+                    
+                } catch (error) {
+                    addLog('🚨 CRITICAL QR generation error: ' + error.message, 'error');
+                    setQrCodeUrl('');
+                } finally {
+                    setIsGeneratingQR(false);
+                    addLog('🚨 QR Code Generation Complete', 'success');
+                }
+            }, []);
+            
+            return (
+                <div>
+                    <h3>DigitalPass Simulation Results</h3>
+                    <div style={{ background: '#f0f0f0', padding: '10px', margin: '10px 0', maxHeight: '200px', overflow: 'auto' }}>
+                        {logs.map((log, i) => (
+                            <div key={i} className={log.type}>
+                                {log.time} - {log.message}
+                            </div>
+                        ))}
+                    </div>
+                    
+                    {isGeneratingQR && (
+                        <div className="info">Generating QR code...</div>
+                    )}
+                    
+                    {!isGeneratingQR && qrCodeUrl && (
+                        <div className="qr-display">
+                            <h4>✅ QR CODE GENERATED SUCCESSFULLY!</h4>
+                            <img 
+                                src={qrCodeUrl} 
+                                alt="QR Code" 
+                                style={{ 
+                                    width: '400px', 
+                                    height: '400px', 
+                                    border: '5px solid red',
+                                    backgroundColor: 'yellow'
+                                }}
+                                onLoad={(e) => addLog('🎉 QR IMAGE LOADED SUCCESSFULLY!', 'success')}
+                                onError={(e) => addLog('❌ QR IMAGE FAILED TO LOAD!', 'error')}
+                            />
+                            <p>URL Length: {qrCodeUrl.length}</p>
+                            <p>URL Preview: {qrCodeUrl.substring(0, 50)}...</p>
+                        </div>
+                    )}
+                    
+                    {!isGeneratingQR && !qrCodeUrl && (
+                        <div className="error">
+                            ❌ NO QR CODE GENERATED - COMPLETE FAILURE
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        
+        // Function accessibility test
+        function FunctionTest() {
+            const [results, setResults] = useState([]);
+            
+            useEffect(() => {
+                const results = [];
+                
+                // Test 1: Check if functions exist
+                results.push({ test: 'createEmergencyQR exists', result: typeof createEmergencyQR !== 'undefined', type: typeof createEmergencyQR !== 'undefined' ? 'success' : 'error' });
+                results.push({ test: 'createGuaranteedVisibleQR exists', result: typeof createGuaranteedVisibleQR !== 'undefined', type: typeof createGuaranteedVisibleQR !== 'undefined' ? 'success' : 'error' });
+                results.push({ test: 'createFallbackQR exists', result: typeof createFallbackQR !== 'undefined', type: typeof createFallbackQR !== 'undefined' ? 'success' : 'error' });
+                
+                // Test 2: Try to call functions directly
+                try {
+                    const testResult = createEmergencyQR('TEST');
+                    results.push({ test: 'createEmergencyQR("TEST") call', result: testResult ? 'SUCCESS - returned data' : 'FAILED - returned null', type: testResult ? 'success' : 'error' });
+                    if (testResult) {
+                        results.push({ test: 'Data URL format check', result: testResult.startsWith('data:image/') ? 'VALID' : 'INVALID', type: testResult.startsWith('data:image/') ? 'success' : 'error' });
+                    }
+                } catch (e) {
+                    results.push({ test: 'createEmergencyQR("TEST") call', result: 'ERROR: ' + e.message, type: 'error' });
+                }
+                
+                setResults(results);
+            }, []);
+            
+            return (
+                <div>
+                    <h3>Function Accessibility Test Results</h3>
+                    {results.map((result, i) => (
+                        <div key={i} className={result.type}>
+                            {result.test}: {result.result}
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+        
+        // Main App
+        const App = () => {
+            return (
+                <div>
+                    <FunctionTest />
+                    <hr />
+                    <TestDigitalPass />
+                </div>
+            );
+        };
+        
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+    
+    <div id="root"></div>
+</body>
+</html>

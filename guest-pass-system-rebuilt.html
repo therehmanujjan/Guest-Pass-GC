@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grand City HQ - Complete Guest Pass Management System</title>
+    
+    <!-- Enhanced Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; connect-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
+    
+    <!-- React and Babel from CDN with fallbacks -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Enhanced QR Code and utilities from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    
+    <style>
+        body { 
+            margin: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .qr-scanner-overlay {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .qr-scanner-overlay::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 2px solid #4F46E5;
+            border-radius: 8px;
+            z-index: 10;
+        }
+        
+        .qr-scanner-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 5;
+        }
+        
+        .scanner-content {
+            position: relative;
+            z-index: 15;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // Enhanced Global Data Management System
+        class GuestPassDataManager {
+            constructor() {
+                this.data = {
+                    visits: [],
+                    executives: [],
+                    settings: {},
+                    auditLog: []
+                };
+                this.subscribers = [];
+                this.currentUser = null;
+                this.init();
+            }
+
+            init() {
+                this.loadFromStorage();
+                this.setupRealTimeSync();
+                this.initializeSampleData();
+            }
+
+            loadFromStorage() {
+                try {
+                    const stored = localStorage.getItem('guestpass_data');
+                    if (stored) {
+                        this.data = JSON.parse(stored);
+                    }
+                } catch (e) {
+                    console.warn('Failed to load from storage:', e);
+                }
+            }
+
+            saveToStorage() {
+                try {
+                    localStorage.setItem('guestpass_data', JSON.stringify(this.data));
+                } catch (e) {
+                    console.warn('Failed to save to storage:', e);
+                }
+            }
+
+            setupRealTimeSync() {
+                window.addEventListener('storage', (e) => {
+                    if (e.key === 'guestpass_sync') {
+                        this.loadFromStorage();
+                        this.notifySubscribers('sync_update');
+                    }
+                });
+            }
+
+            broadcastUpdate(type, data) {
+                try {
+                    const update = {
+                        type,
+                        data,
+                        timestamp: new Date().toISOString(),
+                        user: this.currentUser?.id || 'system'
+                    };
+                    
+                    localStorage.setItem('guestpass_sync', JSON.stringify(update));
+                    setTimeout(() => localStorage.removeItem('guestpass_sync'), 100);
+                } catch (e) {
+                    console.warn('Failed to broadcast update:', e);
+                }
+            }
+
+            subscribe(callback) {
+                this.subscribers.push(callback);
+                return () => {
+                    this.subscribers = this.subscribers.filter(sub => sub !== callback);
+                };
+            }
+
+            notifySubscribers(eventType) {
+                this.subscribers.forEach(callback => callback(eventType));
+            }
+
+            initializeSampleData() {
+                if (this.data.visits.length === 0) {
+                    this.data.executives = [
+                        { id: 1, name: 'Salman Bin Waris Gillani', position: 'MD Partner', email: 'salman@grandcity.pk', phone: '+92-300-1111111', department: 'Management' },
+                        { id: 2, name: 'Rehan Bin Waris Gillani', position: 'Chairman Partner', email: 'rehan@grandcity.pk', phone: '+92-300-2222222', department: 'Board' },
+                        { id: 3, name: 'Khalid Noon', position: 'CEO', email: 'khalid@grandcity.pk', phone: '+92-300-3333333', department: 'Executive' },
+                        { id: 4, name: 'Shahnawaz', position: 'Director Operations', email: 'shahnawaz@grandcity.pk', phone: '+92-300-4444444', department: 'Operations' },
+                        { id: 5, name: 'Muhammad Bin Waris Gillani', position: 'Director Faisalabad', email: 'muhammad@grandcity.pk', phone: '+92-300-5555555', department: 'Regional' },
+                        { id: 6, name: 'Ch. Aslam', position: 'CFO', email: 'aslam@grandcity.pk', phone: '+92-300-6666666', department: 'Finance' },
+                        { id: 7, name: 'Ali Moeen', position: 'Consultant', email: 'ali.moeen@grandcity.pk', phone: '+92-300-7777777', department: 'Consulting' },
+                        { id: 8, name: 'Ali Bin Nadeem', position: 'Technology Consultant', email: 'ali.nadeem@grandcity.pk', phone: '+92-300-8888888', department: 'Technology' }
+                    ];
+
+                    const today = new Date().toISOString().split('T')[0];
+                    this.data.visits = [
+                        {
+                            id: 1,
+                            code: 'GC-2025-000001',
+                            visitor: { 
+                                name: 'Ahmed Hassan', 
+                                company: 'Tech Solutions', 
+                                phone: '+92-300-1234567', 
+                                email: 'ahmed@techsol.com',
+                                cnic: '35202-1234567-8',
+                                address: 'Lahore, Pakistan'
+                            },
+                            executiveId: 3,
+                            purpose: 'Q4 Business Review Meeting - Strategic Planning Session',
+                            date: today,
+                            timeFrom: '10:00',
+                            timeTo: '11:00',
+                            status: 'checked_in',
+                            approval: 'approved',
+                            type: 'scheduled',
+                            priority: 'high',
+                            checkinTime: new Date(Date.now() - 3600000).toISOString(),
+                            checkoutTime: null,
+                            createdAt: new Date(Date.now() - 86400000).toISOString(),
+                            checkedInBy: 'Guard-001',
+                            checkedOutBy: null,
+                            notes: 'Important client meeting',
+                            attachments: []
+                        },
+                        {
+                            id: 2,
+                            code: 'GC-2025-000002',
+                            visitor: { 
+                                name: 'Sara Khan', 
+                                company: 'Consulting Associates', 
+                                phone: '+92-321-9876543', 
+                                email: 'sara@consulting.com',
+                                cnic: '35202-9876543-2',
+                                address: 'Karachi, Pakistan'
+                            },
+                            executiveId: 3,
+                            purpose: 'Project Proposal Discussion - Digital Transformation Initiative',
+                            date: today,
+                            timeFrom: '14:00',
+                            timeTo: '15:30',
+                            status: 'scheduled',
+                            approval: 'approved',
+                            type: 'scheduled',
+                            priority: 'medium',
+                            checkinTime: null,
+                            checkoutTime: null,
+                            createdAt: new Date(Date.now() - 172800000).toISOString(),
+                            checkedInBy: null,
+                            checkedOutBy: null,
+                            notes: 'Follow-up meeting',
+                            attachments: ['proposal.pdf']
+                        },
+                        {
+                            id: 3,
+                            code: 'GC-2025-000003',
+                            visitor: { 
+                                name: 'Muhammad Irfan', 
+                                company: 'ABC Corporation', 
+                                phone: '+92-333-5554444', 
+                                email: 'irfan@abc.com',
+                                cnic: '35202-5554444-1',
+                                address: 'Islamabad, Pakistan'
+                            },
+                            executiveId: 5,
+                            purpose: 'Document Submission - Legal Papers',
+                            date: today,
+                            timeFrom: '15:00',
+                            timeTo: '15:30',
+                            status: 'scheduled',
+                            approval: 'pending',
+                            type: 'walk_in',
+                            priority: 'low',
+                            checkinTime: null,
+                            checkoutTime: null,
+                            createdAt: new Date(Date.now() - 3600000).toISOString(),
+                            checkedInBy: null,
+                            checkedOutBy: null,
+                            notes: 'Urgent document delivery',
+                            attachments: []
+                        }
+                    ];
+
+                    this.data.settings = {
+                        companyName: 'Grand City HQ',
+                        address: '123 Business Avenue, Lahore, Pakistan',
+                        phone: '+92-42-1234567',
+                        email: 'info@grandcity.pk',
+                        website: 'www.grandcity.pk',
+                        workingHours: '09:00-18:00',
+                        maxVisitorsPerDay: 50,
+                        requireApproval: true,
+                        enableNotifications: true,
+                        qrCodeExpiry: 24,
+                        backupInterval: 3600000,
+                        auditLogRetention: 30
+                    };
+
+                    this.saveToStorage();
+                }
+            }
+
+            // CRUD Operations
+            getVisits(filters = {}) {
+                let visits = [...this.data.visits];
+                
+                if (filters.date) {
+                    visits = visits.filter(v => v.date === filters.date);
+                }
+                
+                if (filters.executiveId) {
+                    visits = visits.filter(v => v.executiveId === filters.executiveId);
+                }
+                
+                if (filters.status) {
+                    visits = visits.filter(v => v.status === filters.status);
+                }
+                
+                if (filters.approval) {
+                    visits = visits.filter(v => v.approval === filters.approval);
+                }
+                
+                if (filters.type) {
+                    visits = visits.filter(v => v.type === filters.type);
+                }
+                
+                if (filters.search) {
+                    const searchLower = filters.search.toLowerCase();
+                    visits = visits.filter(v => 
+                        v.visitor.name.toLowerCase().includes(searchLower) ||
+                        v.visitor.company.toLowerCase().includes(searchLower) ||
+                        v.code.toLowerCase().includes(searchLower) ||
+                        v.purpose.toLowerCase().includes(searchLower)
+                    );
+                }
+                
+                return visits;
+            }
+
+            getVisitByCode(code) {
+                return this.data.visits.find(v => v.code === code.toUpperCase());
+            }
+
+            getVisitById(id) {
+                return this.data.visits.find(v => v.id === id);
+            }
+
+            createVisit(visitData) {
+                const newVisit = {
+                    ...visitData,
+                    id: Date.now() + Math.random(),
+                    code: this.generateVisitCode(),
+                    createdAt: new Date().toISOString(),
+                    status: visitData.status || 'scheduled',
+                    approval: visitData.approval || (this.data.settings.requireApproval ? 'pending' : 'approved'),
+                    checkinTime: null,
+                    checkoutTime: null,
+                    checkedInBy: null,
+                    checkedOutBy: null
+                };
+                
+                this.data.visits.push(newVisit);
+                this.saveToStorage();
+                this.broadcastUpdate('visit_created', newVisit);
+                this.logAuditEvent('visit_created', newVisit);
+                
+                return newVisit;
+            }
+
+            updateVisit(code, updates, userId = null) {
+                const visit = this.getVisitByCode(code);
+                if (visit) {
+                    // Track status changes
+                    if (updates.status && updates.status !== visit.status) {
+                        if (updates.status === 'checked_in') {
+                            updates.checkinTime = new Date().toISOString();
+                            updates.checkedInBy = userId || 'system';
+                        } else if (updates.status === 'checked_out') {
+                            updates.checkoutTime = new Date().toISOString();
+                            updates.checkedOutBy = userId || 'system';
+                        }
+                    }
+                    
+                    Object.assign(visit, updates);
+                    this.saveToStorage();
+                    this.broadcastUpdate('visit_updated', visit);
+                    this.logAuditEvent('visit_updated', visit);
+                    
+                    return true;
+                }
+                return false;
+            }
+
+            deleteVisit(code) {
+                const index = this.data.visits.findIndex(v => v.code === code);
+                if (index !== -1) {
+                    const deletedVisit = this.data.visits[index];
+                    this.data.visits.splice(index, 1);
+                    this.saveToStorage();
+                    this.broadcastUpdate('visit_deleted', deletedVisit);
+                    this.logAuditEvent('visit_deleted', deletedVisit);
+                    
+                    return true;
+                }
+                return false;
+            }
+
+            getExecutives() {
+                return [...this.data.executives];
+            }
+
+            getExecutiveById(id) {
+                return this.data.executives.find(e => e.id === id);
+            }
+
+            generateVisitCode() {
+                const counter = this.data.visits.length + 1;
+                return `GC-2025-${String(counter).padStart(6, '0')}`;
+            }
+
+            logAuditEvent(action, data) {
+                const event = {
+                    id: Date.now() + Math.random(),
+                    action,
+                    data: { code: data.code, visitor: data.visitor?.name },
+                    timestamp: new Date().toISOString(),
+                    user: this.currentUser?.id || 'system'
+                };
+                
+                this.data.auditLog.unshift(event);
+                
+                // Keep only last 1000 events
+                if (this.data.auditLog.length > 1000) {
+                    this.data.auditLog = this.data.auditLog.slice(0, 1000);
+                }
+                
+                this.saveToStorage();
+            }
+
+            getAuditLog(limit = 100) {
+                return this.data.auditLog.slice(0, limit);
+            }
+
+            getSettings() {
+                return { ...this.data.settings };
+            }
+
+            updateSettings(updates) {
+                this.data.settings = { ...this.data.settings, ...updates };
+                this.saveToStorage();
+                this.broadcastUpdate('settings_updated', this.data.settings);
+            }
+
+            getStats() {
+                const today = new Date().toISOString().split('T')[0];
+                const todayVisits = this.getVisits({ date: today });
+                
+                return {
+                    total: this.data.visits.length,
+                    today: todayVisits.length,
+                    checkedIn: todayVisits.filter(v => v.status === 'checked_in').length,
+                    pending: this.getVisits({ approval: 'pending' }).length,
+                    approved: this.getVisits({ approval: 'approved' }).length,
+                    byStatus: {
+                        scheduled: this.getVisits({ status: 'scheduled' }).length,
+                        checked_in: this.getVisits({ status: 'checked_in' }).length,
+                        checked_out: this.getVisits({ status: 'checked_out' }).length
+                    },
+                    byType: {
+                        scheduled: this.getVisits({ type: 'scheduled' }).length,
+                        walk_in: this.getVisits({ type: 'walk_in' }).length
+                    }
+                };
+            }
+
+            exportData() {
+                return {
+                    visits: this.data.visits,
+                    executives: this.data.executives,
+                    settings: this.data.settings,
+                    exportedAt: new Date().toISOString(),
+                    version: '2.0'
+                };
+            }
+
+            importData(data) {
+                if (data.visits) this.data.visits = data.visits;
+                if (data.executives) this.data.executives = data.executives;
+                if (data.settings) this.data.settings = { ...this.data.settings, ...data.settings };
+                
+                this.saveToStorage();
+                this.broadcastUpdate('data_imported', { count: data.visits?.length || 0 });
+            }
+        }
+
+        // Initialize global data manager
+        window.guestPassData = new GuestPassDataManager();
+
+        // Enhanced Notification System
+        const NotificationSystem = {
+            show: (message, type = 'info', duration = 3000) => {
+                const notification = document.createElement('div');
+                notification.className = `notification fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 fade-in max-w-sm ${
+                    type === 'success' ? 'bg-green-500 text-white' :
+                    type === 'error' ? 'bg-red-500 text-white' :
+                    type === 'warning' ? 'bg-yellow-500 text-black' :
+                    'bg-blue-500 text-white'
+                }`;
+                
+                notification.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="mr-2">${
+                            type === 'success' ? '✅' :
+                            type === 'error' ? '❌' :
+                            type === 'warning' ? '⚠️' : 'ℹ️'
+                        }</span>
+                        <span>${message}</span>
+                        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-lg font-bold">×</button>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, duration);
+            }
+        };
+
+        // Enhanced QR Code Generation
+        const generateQRCode = async (text, options = {}) => {
+            try {
+                const opts = {
+                    width: 200,
+                    margin: 2,
+                    color: { dark: '#000000', light: '#FFFFFF' },
+                    errorCorrectionLevel: 'M',
+                    ...options
+                };
+                
+                const canvas = document.createElement('canvas');
+                await QRCode.toCanvas(canvas, text, opts);
+                return canvas.toDataURL('image/png');
+            } catch (e) {
+                console.error('QR generation error:', e);
+                return null;
+            }
+        };
+
+        // Enhanced QR Scanner Component
+        const QRScanner = ({ onScanSuccess, onScanError }) => {
+            const videoRef = useRef(null);
+            const canvasRef = useRef(null);
+            const [isScanning, setIsScanning] = useState(false);
+            const [hasPermission, setHasPermission] = useState(null);
+            const [devices, setDevices] = useState([]);
+            const [selectedDevice, setSelectedDevice] = useState('');
+            const [scanError, setScanError] = useState('');
+            const [lastScannedCode, setLastScannedCode] = useState('');
+
+            useEffect(() => {
+                const getDevices = async () => {
+                    try {
+                        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                            setScanError('Camera API not supported in this browser');
+                            return;
+                        }
+                        
+                        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                        stream.getTracks().forEach(track => track.stop());
+                        
+                        const deviceInfos = await navigator.mediaDevices.enumerateDevices();
+                        const videoDevices = deviceInfos.filter(device => device.kind === 'videoinput');
+                        setDevices(videoDevices);
+                        if (videoDevices.length > 0) {
+                            setSelectedDevice(videoDevices[0].deviceId);
+                        }
+                    } catch (err) {
+                        console.error('Error getting devices:', err);
+                        setHasPermission(false);
+                        const errorMsg = err.name === 'NotAllowedError' 
+                            ? 'Camera permission denied. Please enable camera access in your browser settings.'
+                            : 'Unable to access camera devices';
+                        setScanError(errorMsg);
+                    }
+                };
+
+                getDevices();
+            }, []);
+
+            const startCamera = async () => {
+                try {
+                    setScanError('');
+                    
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            deviceId: selectedDevice ? { exact: selectedDevice } : undefined,
+                            facingMode: 'environment'
+                        } 
+                    });
+                    
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                        videoRef.current.play();
+                        setHasPermission(true);
+                        setIsScanning(true);
+                        scanQRCode();
+                    }
+                } catch (err) {
+                    console.error('Camera error:', err);
+                    setHasPermission(false);
+                    const errorMsg = err.name === 'NotAllowedError' 
+                        ? 'Camera permission denied. Please enable camera access in your browser settings.'
+                        : 'Camera not available or permission denied';
+                    setScanError(errorMsg);
+                    if (onScanError) {
+                        onScanError(errorMsg);
+                    }
+                }
+            };
+
+            const stopCamera = () => {
+                if (videoRef.current && videoRef.current.srcObject) {
+                    const stream = videoRef.current.srcObject;
+                    const tracks = stream.getTracks();
+                    tracks.forEach(track => track.stop());
+                    videoRef.current.srcObject = null;
+                }
+                setIsScanning(false);
+            };
+
+            const scanQRCode = () => {
+                if (!videoRef.current || !canvasRef.current || !isScanning) return;
+
+                const canvas = canvasRef.current;
+                const video = videoRef.current;
+                const canvasContext = canvas.getContext('2d');
+
+                const scan = () => {
+                    if (!isScanning || !video.videoWidth || !video.videoHeight) {
+                        requestAnimationFrame(scan);
+                        return;
+                    }
+
+                    try {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                        const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+                        const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                        if (code && code.data && code.data !== lastScannedCode) {
+                            setLastScannedCode(code.data);
+                            stopCamera();
+                            if (onScanSuccess) {
+                                onScanSuccess(code.data);
+                            }
+                        } else {
+                            requestAnimationFrame(scan);
+                        }
+                    } catch (err) {
+                        console.error('QR scan error:', err);
+                        requestAnimationFrame(scan);
+                    }
+                };
+
+                requestAnimationFrame(scan);
+            };
+
+            useEffect(() => {
+                if (isScanning) {
+                    scanQRCode();
+                }
+            }, [isScanning]);
+
+            useEffect(() => {
+                return () => {
+                    stopCamera();
+                };
+            }, []);
+
+            return (
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="text-center mb-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Camera QR Scanner</h3>
+                        <p className="text-sm text-gray-600">Point your camera at the QR code</p>
+                    </div>
+
+                    {(hasPermission === false || scanError) && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                            <div className="flex items-center">
+                                <svg className="w-5 h-5 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <div>
+                                    <p className="text-sm font-medium text-red-900">Camera Access Denied</p>
+                                    <p className="text-sm text-red-700 mt-1">{scanError || 'Please enable camera permissions in your browser settings.'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {devices.length > 1 && (
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Select Camera</label>
+                            <select
+                                value={selectedDevice}
+                                onChange={(e) => setSelectedDevice(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            >
+                                {devices.map(device => (
+                                    <option key={device.deviceId} value={device.deviceId}>
+                                        {device.label || `Camera ${devices.indexOf(device) + 1}`}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    <div className="relative mb-4 qr-scanner-overlay">
+                        <video
+                            ref={videoRef}
+                            className={`w-full rounded-lg ${isScanning ? 'block' : 'hidden'}`}
+                            playsInline
+                            muted
+                        />
+                        <canvas
+                            ref={canvasRef}
+                            className="hidden"
+                        />
+                        
+                        {!isScanning && (
+                            <div className="bg-gray-100 rounded-lg p-12 text-center">
+                                <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <p className="text-gray-600">Camera ready</p>
+                            </div>
+                        )}
+                        
+                        {isScanning && (
+                            <div className="scanner-content">
+                                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                                    Scanning...
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex space-x-3">
+                        {!isScanning ? (
+                            <button
+                                onClick={startCamera}
+                                disabled={!selectedDevice}
+                                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Start Camera
+                            </button>
+                        ) : (
+                            <button
+                                onClick={stopCamera}
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                Stop Camera
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Enhanced Digital Pass Component
+        const DigitalPass = ({ visit, executive, onClose, onValidate }) => {
+            const passRef = useRef(null);
+            const [qrCodeUrl, setQrCodeUrl] = useState('');
+            const [isGeneratingQR, setIsGeneratingQR] = useState(true);
+
+            useEffect(() => {
+                const generateQR = async () => {
+                    setIsGeneratingQR(true);
+                    try {
+                        const qrUrl = await generateQRCode(visit.code);
+                        setQrCodeUrl(qrUrl);
+                    } catch (e) {
+                        console.error('Failed to generate QR code:', e);
+                    } finally {
+                        setIsGeneratingQR(false);
+                    }
+                };
+                generateQR();
+            }, [visit.code]);
+
+            const handleDownload = async () => {
+                if (!passRef.current) return;
+                
+                try {
+                    if (typeof html2canvas === 'undefined') {
+                        NotificationSystem.show('Download feature is not available', 'error');
+                        return;
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    const canvas = await html2canvas(passRef.current, {
+                        backgroundColor: '#ffffff',
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        width: 400,
+                        height: 600
+                    });
+                    
+                    const dataURL = canvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.download = `GrandCity-Pass-${visit.code}-${visit.visitor.name.replace(/\s+/g, '_')}.png`;
+                    link.href = dataURL;
+                    link.click();
+                    
+                    NotificationSystem.show('Pass downloaded successfully!', 'success');
+                } catch (e) {
+                    console.error('Download error:', e);
+                    NotificationSystem.show('Failed to download pass', 'error');
+                }
+            };
+
+            const handlePrint = () => {
+                if (passRef.current) {
+                    const printWindow = window.open('', '_blank');
+                    printWindow.document.write(`
+                        <html>
+                            <head>
+                                <title>Visitor Pass - ${visit.code}</title>
+                                <style>
+                                    body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+                                    .print-pass { max-width: 400px; margin: 0 auto; }
+                                    @media print { body { padding: 0; } }
+                                </style>
+                            </head>
+                            <body>
+                                <div class="print-pass">${passRef.current.innerHTML}</div>
+                                <script>window.print(); window.onafterprint = () => window.close();</script>
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                }
+            };
+
+            const handleWhatsAppShare = () => {
+                const message = `🎫 Grand City HQ Visitor Pass\n\n` +
+                    `Visitor: ${visit.visitor.name}\n` +
+                    `Company: ${visit.visitor.company}\n` +
+                    `Code: ${visit.code}\n` +
+                    `Date: ${new Date(visit.date).toLocaleDateString()}\n` +
+                    `Time: ${visit.timeFrom} - ${visit.timeTo}\n` +
+                    `Meeting with: ${executive.name}\n` +
+                    `Purpose: ${visit.purpose}`;
+                
+                const whatsappUrl = `https://wa.me/${visit.visitor.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+            };
+
+            const handleEmailShare = () => {
+                const subject = `Visitor Pass - ${visit.visitor.name} - Grand City HQ`;
+                const body = `Dear ${visit.visitor.name},\n\n` +
+                    `Your visitor pass has been confirmed.\n\n` +
+                    `Visit Details:\n` +
+                    `• Pass Code: ${visit.code}\n` +
+                    `• Date: ${new Date(visit.date).toLocaleDateString()}\n` +
+                    `• Time: ${visit.timeFrom} - ${visit.timeTo}\n` +
+                    `• Meeting with: ${executive.name} (${executive.position})\n` +
+                    `• Purpose: ${visit.purpose}\n\n` +
+                    `Please present this pass at the security gate.\n\n` +
+                    `Best regards,\nGrand City HQ`;
+                
+                const mailtoUrl = `mailto:${visit.visitor.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                window.open(mailtoUrl);
+            };
+
+            const handleValidate = () => {
+                if (onValidate) {
+                    onValidate(visit.code);
+                }
+            };
+
+            const statusColor = visit.approval === 'approved' ? 'bg-green-500' : 'bg-orange-500';
+            const statusText = visit.approval === 'approved' ? 'APPROVED' : 'PENDING APPROVAL';
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+                        <div className="p-6">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-bold text-gray-900">Digital Visitor Pass</h2>
+                                <button 
+                                    onClick={onClose}
+                                    className="text-gray-400 hover:text-gray-600 text-2xl font-bold transition-colors"
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <div ref={passRef} className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-xl p-6 text-white mb-6 shadow-2xl">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h3 className="text-sm font-semibold opacity-90">GRAND CITY HQ</h3>
+                                        <p className="text-xs opacity-75">Visitor Pass</p>
+                                    </div>
+                                    <div className={`${statusColor} px-3 py-1 rounded-full text-xs font-bold`}>
+                                        {statusText}
+                                    </div>
+                                </div>
+
+                                {isGeneratingQR && (
+                                    <div className="bg-white rounded-lg p-4 mb-6 flex justify-center items-center h-48">
+                                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                                    </div>
+                                )}
+                                {!isGeneratingQR && qrCodeUrl && (
+                                    <div className="bg-white rounded-lg p-4 mb-6 flex justify-center">
+                                        <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+                                    </div>
+                                )}
+                                {!isGeneratingQR && !qrCodeUrl && (
+                                    <div className="bg-gray-100 rounded-lg p-4 mb-6 text-center">
+                                        <div className="text-gray-500 text-sm mb-2">QR Code not available</div>
+                                        <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8">
+                                            <div className="text-2xl font-mono text-gray-700">{visit.code}</div>
+                                            <div className="text-xs text-gray-500 mt-2">Show this code at the gate</div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="bg-white bg-opacity-20 rounded-lg p-4 mb-6 backdrop-blur-sm">
+                                    <p className="text-xs opacity-75 mb-1">VISIT CODE</p>
+                                    <p className="text-2xl font-bold tracking-wider">{visit.code}</p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="text-xs opacity-75">VISITOR</p>
+                                            <p className="font-semibold">{visit.visitor.name}</p>
+                                            {visit.visitor.company && (
+                                                <p className="text-sm opacity-90">{visit.visitor.company}</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-xs opacity-75">MEETING WITH</p>
+                                            <p className="text-sm font-semibold">{executive.name}</p>
+                                            <p className="text-xs opacity-90">{executive.position}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs opacity-75">VISIT TYPE</p>
+                                            <p className="text-sm font-semibold capitalize">{visit.type.replace('_', ' ')}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-xs opacity-75">DATE</p>
+                                            <p className="text-sm font-semibold">
+                                                {new Date(visit.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs opacity-75">TIME</p>
+                                            <p className="text-sm font-semibold">{visit.timeFrom} - {visit.timeTo}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t border-white border-opacity-30 pt-3 mt-3">
+                                        <p className="text-xs opacity-75">PURPOSE</p>
+                                        <p className="text-sm">{visit.purpose}</p>
+                                    </div>
+
+                                    {(visit.checkinTime || visit.checkedInBy) && (
+                                        <div className="border-t border-white border-opacity-30 pt-3 mt-3">
+                                            <p className="text-xs opacity-75">CHECKED IN</p>
+                                            <p className="text-xs">
+                                                {visit.checkinTime ? new Date(visit.checkinTime).toLocaleString() : 'Unknown'} 
+                                                {visit.checkedInBy && ` by ${visit.checkedInBy}`}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mt-6 pt-4 border-t border-white border-opacity-30 text-center">
+                                    <p className="text-xs opacity-75">Please present this pass at the security gate</p>
+                                    <p className="text-xs opacity-60 mt-1">Generated: {new Date(visit.createdAt).toLocaleString()}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                {onValidate && (
+                                    <button
+                                        onClick={handleValidate}
+                                        className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center space-x-2"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span>Validate This Pass</span>
+                                    </button>
+                                )}
+                                
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={handleDownload}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center space-x-1"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <span>Download</span>
+                                    </button>
+                                    
+                                    <button
+                                        onClick={handlePrint}
+                                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium flex items-center justify-center space-x-1"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                        </

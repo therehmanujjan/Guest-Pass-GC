@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple QR Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <h1>Simple QR Code Test</h1>
+    <div id="qrcode"></div>
+    <div id="result"></div>
+    <div id="debug"></div>
+
+    <script>
+        console.log('=== Starting Simple QR Test ===');
+        
+        function testSimpleQR() {
+            const resultDiv = document.getElementById('result');
+            const debugDiv = document.getElementById('debug');
+            const qrcodeDiv = document.getElementById('qrcode');
+            
+            try {
+                console.log('1. Checking QRCode library...');
+                if (typeof QRCode === 'undefined') {
+                    throw new Error('QRCode library not loaded');
+                }
+                console.log('✅ QRCode library found:', typeof QRCode);
+                
+                console.log('2. Creating QR code...');
+                const qrcode = new QRCode(qrcodeDiv, {
+                    text: "TEST123456",
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",
+                    colorLight: "#FFFFFF",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+                
+                console.log('✅ QRCode instance created');
+                
+                // Check what was created
+                setTimeout(() => {
+                    console.log('3. Checking generated content...');
+                    const canvas = qrcodeDiv.querySelector('canvas');
+                    const img = qrcodeDiv.querySelector('img');
+                    
+                    if (canvas) {
+                        console.log('✅ Canvas found:', canvas);
+                        console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+                        
+                        // Test pixel data
+                        const ctx = canvas.getContext('2d');
+                        const imageData = ctx.getImageData(0, 0, 10, 10);
+                        let blackCount = 0;
+                        let whiteCount = 0;
+                        
+                        for (let i = 0; i < imageData.data.length; i += 4) {
+                            const r = imageData.data[i];
+                            const g = imageData.data[i + 1];
+                            const b = imageData.data[i + 2];
+                            
+                            if (r === 0 && g === 0 && b === 0) blackCount++;
+                            else if (r === 255 && g === 255 && b === 255) whiteCount++;
+                        }
+                        
+                        console.log('Pixel analysis - Black:', blackCount, 'White:', whiteCount);
+                        
+                        if (blackCount > 0) {
+                            console.log('✅ QR pattern detected!');
+                            resultDiv.innerHTML = '<p style="color: green;">✅ QR code generated successfully with pattern!</p>';
+                        } else {
+                            console.log('⚠️ No QR pattern detected');
+                            resultDiv.innerHTML = '<p style="color: orange;">⚠️ QR code generated but no pattern detected</p>';
+                        }
+                        
+                        // Convert to data URL
+                        const dataUrl = canvas.toDataURL('image/png');
+                        console.log('Data URL length:', dataUrl.length);
+                        debugDiv.innerHTML = `<p>Data URL: ${dataUrl.substring(0, 50)}...</p>`;
+                        
+                    } else if (img) {
+                        console.log('✅ Image found:', img);
+                        console.log('Image src:', img.src);
+                        resultDiv.innerHTML = '<p style="color: green;">✅ QR code generated as image!</p>';
+                    } else {
+                        console.log('❌ No canvas or image found');
+                        resultDiv.innerHTML = '<p style="color: red;">❌ No QR content generated</p>';
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                console.error('❌ Error:', error.message);
+                resultDiv.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Run test when page loads
+        window.addEventListener('load', testSimpleQR);
+    </script>
+</body>
+</html>

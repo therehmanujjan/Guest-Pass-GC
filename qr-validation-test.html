@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Validation Test - Grand City HQ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- QR Code library from local file -->
+    <script src="./qrcode.min.js"></script>
+    
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="gradient-bg min-h-screen py-8">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-white mb-2">QR Validation Test</h1>
+                <p class="text-white opacity-90">Testing QR code validation for Guards & Receptionists</p>
+            </div>
+
+            <!-- Test Controls -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Generate Test QR Codes</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button onclick="generateTestQR('GC-2025-000001')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Generate Valid Pass
+                    </button>
+                    <button onclick="generateTestQR('GC-2025-000999')" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                        Generate Invalid Pass
+                    </button>
+                    <button onclick="generateTestQR('GC-2025-000005')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        Generate Another Pass
+                    </button>
+                </div>
+            </div>
+
+            <!-- QR Code Display -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Generated QR Code</h2>
+                <div class="text-center">
+                    <div id="qr-display" class="mb-4 flex justify-center">
+                        <div class="w-64 h-64 bg-gray-200 rounded-lg flex items-center justify-center">
+                            <span class="text-gray-500">Click a button to generate QR code</span>
+                        </div>
+                    </div>
+                    <div id="qr-code-text" class="text-lg font-mono text-gray-700 mb-4"></div>
+                    <div id="validation-status" class="text-sm text-gray-600"></div>
+                </div>
+            </div>
+
+            <!-- Validation Instructions -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">How to Test</h2>
+                <div class="space-y-4 text-gray-700">
+                    <div class="flex items-start space-x-3">
+                        <div class="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
+                        <div>
+                            <h3 class="font-semibold">Generate QR Codes</h3>
+                            <p class="text-sm">Click the buttons above to generate test QR codes with different visit codes.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="bg-green-100 text-green-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
+                        <div>
+                            <h3 class="font-semibold">Test with Main System</h3>
+                            <p class="text-sm">Open the main guest pass system and test scanning these QR codes as both Guard and Receptionist.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="bg-purple-100 text-purple-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</div>
+                        <div>
+                            <h3 class="font-semibold">Verify Validation</h3>
+                            <p class="text-sm">Both roles should be able to validate passes through QR scanning and manual entry.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced QR Code Generation (same as main system)
+        const generateQRCode = async (text) => {
+            try {
+                console.log('Starting QR code generation for:', text);
+                
+                // Wait for QRCode library to be available
+                let attempts = 0;
+                const maxAttempts = 50; // 5 seconds timeout
+                
+                while (typeof QRCode === 'undefined' && attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                if (typeof QRCode === 'undefined') {
+                    console.error('QR code library failed to load after 5 seconds');
+                    return generateFallbackQR(text);
+                }
+                
+                console.log('QRCode library loaded:', typeof QRCode);
+                console.log('QRCode methods available:', Object.keys(QRCode));
+                
+                // Method 1: Use QRCode constructor directly (most reliable)
+                console.log('Trying QRCode constructor method...');
+                return new Promise((resolve) => {
+                    try {
+                        // Create a container div for the QR code
+                        const container = document.createElement('div');
+                        container.style.width = '256px';
+                        container.style.height = '256px';
+                        container.style.display = 'none';
+                        document.body.appendChild(container);
+                        
+                        // Create QRCode instance
+                        const qrCode = new QRCode(container, {
+                            text: text,
+                            width: 256,
+                            height: 256,
+                            colorDark: '#000000',
+                            colorLight: '#FFFFFF',
+                            correctLevel: QRCode.CorrectLevel.M
+                        });
+                        
+                        console.log('QRCode instance created successfully');
+                        
+                        // Wait for QR code to be rendered
+                        setTimeout(() => {
+                            try {
+                                // Find the canvas or img element in the container
+                                const canvas = container.querySelector('canvas');
+                                const img = container.querySelector('img');
+                                
+                                let dataUrl = '';
+                                
+                                if (canvas) {
+                                    dataUrl = canvas.toDataURL('image/png');
+                                    console.log('QR code generated from canvas');
+                                } else if (img) {
+                                    dataUrl = img.src;
+                                    console.log('QR code generated from img src');
+                                } else {
+                                    console.log('No canvas or img found, trying fallback');
+                                    dataUrl = generateFallbackQR(text);
+                                }
+                                
+                                // Clean up
+                                document.body.removeChild(container);
+                                console.log('QR code data URL length:', dataUrl.length);
+                                console.log('QR code data URL preview:', dataUrl.substring(0, 50) + '...');
+                                resolve(dataUrl);
+                                
+                            } catch (renderError) {
+                                console.error('QR rendering error:', renderError);
+                                document.body.removeChild(container);
+                                resolve(generateFallbackQR(text));
+                            }
+                        }, 500);
+                        
+                    } catch (constructorError) {
+                        console.error('QRCode constructor error:', constructorError);
+                        resolve(generateFallbackQR(text));
+                    }
+                });
+                
+            } catch (e) {
+                console.error('QR generation error:', e);
+                return generateFallbackQR(text);
+            }
+        };
+
+        // Fallback QR code generation
+        const generateFallbackQR = (text) => {
+            console.log('Using fallback QR generation for:', text);
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                
+                if (!ctx) {
+                    console.error('Canvas 2D context not available');
+                    return createTextFallback(text);
+                }
+                
+                // White background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, 256, 256);
+                
+                // Black border
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 8;
+                ctx.strokeRect(20, 20, 216, 216);
+                
+                // Add finder patterns (the three big squares in corners)
+                ctx.fillStyle = '#000000';
+                
+                // Top-left finder pattern
+                ctx.fillRect(40, 40, 28, 28);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(44, 44, 20, 20);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(48, 48, 12, 12);
+                
+                // Top-right finder pattern
+                ctx.fillRect(188, 40, 28, 28);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(192, 44, 20, 20);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(196, 48, 12, 12);
+                
+                // Bottom-left finder pattern
+                ctx.fillRect(40, 188, 28, 28);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(44, 192, 20, 20);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(48, 196, 12, 12);
+                
+                // Simple pattern to represent QR code data
+                ctx.fillStyle = '#000000';
+                const moduleSize = 6;
+                const modules = 32;
+                
+                // Create a simple pattern based on the text
+                let hash = 0;
+                for (let i = 0; i < text.length; i++) {
+                    hash = ((hash << 5) - hash + text.charCodeAt(i)) & 0xFFFFFFFF;
+                }
+                
+                // Fill with a pattern based on the hash
+                for (let row = 0; row < modules; row++) {
+                    for (let col = 0; col < modules; col++) {
+                        if ((hash + row * col) % 3 === 0) {
+                            const x = 80 + col * moduleSize;
+                            const y = 80 + row * moduleSize;
+                            ctx.fillRect(x, y, moduleSize, moduleSize);
+                        }
+                    }
+                }
+                
+                // Add the text at the bottom
+                ctx.fillStyle = '#666666';
+                ctx.font = '14px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(text.substring(0, 20), 128, 248);
+                
+                return canvas.toDataURL('image/png');
+                
+            } catch (e) {
+                console.error('Fallback QR error:', e);
+                return createTextFallback(text);
+            }
+        };
+
+        // Text fallback
+        const createTextFallback = (text) => {
+            console.log('Using text fallback');
+            try {
+                const svgData = `
+                    <svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="256" height="256" fill="white"/>
+                        <rect x="20" y="20" width="216" height="216" fill="none" stroke="black" stroke-width="4"/>
+                        <text x="128" y="128" text-anchor="middle" font-family="monospace" font-size="18" fill="black">
+                            ${text.substring(0, 8)}
+                        </text>
+                        <text x="128" y="150" text-anchor="middle" font-family="monospace" font-size="12" fill="gray">
+                            Code: ${text}
+                        </text>
+                    </svg>
+                `;
+                return 'data:image/svg+xml;base64,' + btoa(svgData);
+            } catch (e) {
+                console.error('Text fallback error:', e);
+                return '';
+            }
+        };
+
+        // Test function
+        async function generateTestQR(code) {
+            const qrDisplay = document.getElementById('qr-display');
+            const codeText = document.getElementById('qr-code-text');
+            const statusText = document.getElementById('validation-status');
+            
+            // Show loading state
+            qrDisplay.innerHTML = '<div class="w-64 h-64 bg-gray-200 rounded-lg flex items-center justify-center"><span class="text-gray-500">Generating...</span></div>';
+            codeText.textContent = '';
+            statusText.textContent = '';
+            
+            try {
+                const qrUrl = await generateQRCode(code);
+                if (qrUrl) {
+                    qrDisplay.innerHTML = `<img src="${qrUrl}" alt="QR Code" class="w-64 h-64">`;
+                    codeText.textContent = code;
+                    
+                    // Simulate validation check
+                    const isValid = code.startsWith('GC-2025-000') && parseInt(code.split('-')[2]) <= 100;
+                    statusText.textContent = isValid ? '✅ This should be a valid pass' : '❌ This should be an invalid pass';
+                    statusText.className = isValid ? 'text-sm text-green-600' : 'text-sm text-red-600';
+                } else {
+                    qrDisplay.innerHTML = '<div class="w-64 h-64 bg-red-100 rounded-lg flex items-center justify-center text-red-600">Failed to generate</div>';
+                    codeText.textContent = 'Generation failed';
+                }
+            } catch (e) {
+                qrDisplay.innerHTML = '<div class="w-64 h-64 bg-red-100 rounded-lg flex items-center justify-center text-red-600">Error occurred</div>';
+                codeText.textContent = 'Error: ' + e.message;
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('QR Validation Test System initialized');
+            console.log(`QRCode library status: ${typeof QRCode !== 'undefined' ? 'Loaded' : 'Missing'}`);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+{
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "maxFiles": 10,
+    "maxSize": "10m",
+    "compress": true,
+    "enableConsole": true,
+    "enableFile": true,
+    "categories": {
+      "application": { "level": "info", "filename": "application.log" },
+      "security": { "level": "warn", "filename": "security.log" },
+      "performance": { "level": "info", "filename": "performance.log" },
+      "error": { "level": "error", "filename": "error.log" },
+      "access": { "level": "info", "filename": "access.log" }
+    }
+  },
+  "metrics": {
+    "enabled": true,
+    "collectInterval": 60000,
+    "retention": "7d",
+    "categories": {
+      "system": ["cpu", "memory", "disk", "network"],
+      "application": ["requests", "errors", "responseTime", "activeUsers"],
+      "business": ["visitors", "checkIns", "checkOuts", "qrScans"]
+    }
+  },
+  "healthChecks": {
+    "enabled": true,
+    "interval": 30000,
+    "timeout": 5000,
+    "checks": [
+      { "name": "database", "type": "database", "critical": true },
+      { "name": "redis", "type": "redis", "critical": false },
+      { "name": "disk-space", "type": "disk", "critical": true },
+      { "name": "memory", "type": "memory", "critical": true }
+    ]
+  },
+  "alerts": {
+    "enabled": true,
+    "channels": {
+      "email": { "enabled": false, "recipients": [] },
+      "slack": { "enabled": false, "webhook": "" },
+      "sms": { "enabled": false, "numbers": [] }
+    },
+    "thresholds": {
+      "errorRate": 0.05,
+      "responseTime": 2000,
+      "cpuUsage": 0.8,
+      "memoryUsage": 0.85,
+      "diskUsage": 0.9
+    }
+  },
+  "performance": {
+    "enableProfiling": false,
+    "slowQueryThreshold": 1000,
+    "slowRequestThreshold": 3000,
+    "enableTracing": true
+  },
+  "externalServices": {
+    "sentry": {
+      "enabled": false,
+      "dsn": "",
+      "environment": "development",
+      "tracesSampleRate": 1.0
+    },
+    "datadog": {
+      "enabled": false,
+      "apiKey": "",
+      "appKey": ""
+    },
+    "newrelic": {
+      "enabled": false,
+      "appName": "Guest Pass System",
+      "licenseKey": ""
+    }
+  }
+}

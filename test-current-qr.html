@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Current QR Generation</title>
+</head>
+<body>
+    <h1>Testing QR Code Generation</h1>
+    <div id="test-results"></div>
+    <div id="qr-display"></div>
+    
+    <!-- Load the same libraries as production -->
+    <script src="./qrcode.min.js"></script>
+    <script>
+        const testResults = document.getElementById('test-results');
+        const qrDisplay = document.getElementById('qr-display');
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.style.color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'black';
+            div.textContent = message;
+            testResults.appendChild(div);
+        }
+        
+        // Test 1: Check if QRCode library is available
+        addResult('Testing QRCode library availability...');
+        addResult('typeof QRCode: ' + typeof QRCode);
+        addResult('QRCode available: ' + (typeof QRCode !== 'undefined'));
+        
+        if (typeof QRCode !== 'undefined') {
+            addResult('QRCode methods: ' + Object.keys(QRCode).join(', '));
+        }
+        
+        // Test 2: Try guaranteed visible QR
+        addResult('\\nTesting guaranteed visible QR generation...');
+        
+        const createGuaranteedVisibleQR = (text) => {
+            console.log('🎯 GUARANTEED VISIBLE QR GENERATION for:', text);
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 300;
+                canvas.height = 300;
+                const ctx = canvas.getContext('2d');
+                
+                if (!ctx) {
+                    console.error('❌ Canvas context not available');
+                    return null;
+                }
+                
+                console.log('✅ Canvas created for guaranteed visible QR');
+                
+                // High contrast background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, 300, 300);
+                
+                // THICK black border - IMPOSSIBLE TO MISS
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 15;
+                ctx.strokeRect(7, 7, 286, 286);
+                
+                // HUGE finder patterns - CAN'T BE MISSED
+                ctx.fillStyle = '#000000';
+                
+                // Top-left finder (HUGE)
+                ctx.fillRect(25, 25, 60, 60);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(35, 35, 40, 40);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(45, 45, 20, 20);
+                
+                // VERY OBVIOUS checkerboard pattern
+                ctx.fillStyle = '#000000';
+                const moduleSize = 10;
+                
+                // Generate checkerboard pattern - VERY OBVIOUS
+                for (let row = 0; row < 10; row++) {
+                    for (let col = 0; col < 10; col++) {
+                        if ((row + col) % 2 === 0) {
+                            ctx.fillRect(
+                                100 + col * moduleSize,
+                                100 + row * moduleSize,
+                                moduleSize,
+                                moduleSize
+                            );
+                        }
+                    }
+                }
+                
+                // LARGE text at bottom
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(text, 150, 290);
+                
+                const dataUrl = canvas.toDataURL('image/png', 1.0);
+                console.log('🎯 GUARANTEED VISIBLE QR generated - URL length:', dataUrl.length);
+                return dataUrl;
+                
+            } catch (error) {
+                console.error('❌ Guaranteed visible QR error:', error);
+                return null;
+            }
+        };
+        
+        const testCode = 'TEST123';
+        const qrResult = createGuaranteedVisibleQR(testCode);
+        
+        if (qrResult) {
+            addResult('✅ Guaranteed QR generated successfully! URL length: ' + qrResult.length, 'success');
+            
+            // Display the QR code
+            const img = document.createElement('img');
+            img.src = qrResult;
+            img.style.border = '2px solid black';
+            img.style.margin = '10px';
+            img.style.width = '300px';
+            img.style.height = '300px';
+            qrDisplay.appendChild(img);
+            
+            // Test data URL validity
+            const imgTest = new Image();
+            imgTest.onload = function() {
+                addResult('✅ QR image loaded successfully!', 'success');
+                addResult('Image dimensions: ' + imgTest.naturalWidth + 'x' + imgTest.naturalHeight);
+            };
+            imgTest.onerror = function() {
+                addResult('❌ QR image failed to load', 'error');
+            };
+            imgTest.src = qrResult;
+            
+        } else {
+            addResult('❌ Guaranteed QR generation failed', 'error');
+        }
+        
+        // Test 3: Try QRCode library if available
+        if (typeof QRCode !== 'undefined') {
+            addResult('\\nTesting QRCode library generation...');
+            try {
+                const container = document.createElement('div');
+                container.style.width = '256px';
+                container.style.height = '256px';
+                document.body.appendChild(container);
+                
+                new QRCode(container, {
+                    text: testCode,
+                    width: 256,
+                    height: 256,
+                    colorDark: '#000000',
+                    colorLight: '#FFFFFF',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+                
+                setTimeout(() => {
+                    const canvas = container.querySelector('canvas');
+                    const img = container.querySelector('img');
+                    
+                    if (canvas) {
+                        const dataUrl = canvas.toDataURL('image/png');
+                        addResult('✅ QRCode library generated canvas! URL length: ' + dataUrl.length, 'success');
+                        
+                        const qrImg = document.createElement('img');
+                        qrImg.src = dataUrl;
+                        qrImg.style.border = '2px solid blue';
+                        qrImg.style.margin = '10px';
+                        qrDisplay.appendChild(qrImg);
+                    } else if (img) {
+                        addResult('✅ QRCode library generated img! URL: ' + img.src.substring(0, 50) + '...', 'success');
+                        qrDisplay.appendChild(img);
+                    } else {
+                        addResult('❌ No QR output found in container', 'error');
+                    }
+                    
+                    document.body.removeChild(container);
+                }, 500);
+                
+            } catch (e) {
+                addResult('❌ QRCode library error: ' + e.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

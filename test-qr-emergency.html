@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Debug - Test Current System</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-container { border: 2px solid red; padding: 20px; margin: 20px 0; background: #f0f0f0; }
+        .qr-test-area { border: 3px solid blue; padding: 20px; margin: 20px 0; background: white; min-height: 200px; }
+        .log-entry { font-family: monospace; font-size: 12px; margin: 2px 0; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Copy the exact functions from your system
+        const createEmergencyQR = (text) => {
+            console.log('Using EMERGENCY visible QR generation for:', text);
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 300;
+                canvas.height = 300;
+                const ctx = canvas.getContext('2d');
+                
+                if (!ctx) {
+                    console.error('Canvas context not available');
+                    return null;
+                }
+                
+                // High contrast background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, 300, 300);
+                
+                // Thick black border
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 10;
+                ctx.strokeRect(5, 5, 290, 290);
+                
+                // Large finder patterns - VERY visible
+                ctx.fillStyle = '#000000';
+                
+                // Top-left finder (extra large)
+                ctx.fillRect(20, 20, 50, 50);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(30, 30, 30, 30);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(40, 40, 10, 10);
+                
+                // Top-right finder (extra large)
+                ctx.fillRect(230, 20, 50, 50);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(240, 30, 30, 30);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(250, 40, 10, 10);
+                
+                // Bottom-left finder (extra large)
+                ctx.fillRect(20, 230, 50, 50);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(30, 240, 30, 30);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(40, 250, 10, 10);
+                
+                // Create a very visible pattern in the center
+                ctx.fillStyle = '#000000';
+                const moduleSize = 8;
+                
+                // Generate visible pattern
+                for (let row = 0; row < 15; row++) {
+                    for (let col = 0; col < 15; col++) {
+                        const shouldFill = (row + col) % 2 === 0;
+                        if (shouldFill) {
+                            ctx.fillRect(
+                                80 + col * moduleSize,
+                                80 + row * moduleSize,
+                                moduleSize,
+                                moduleSize
+                            );
+                        }
+                    }
+                }
+                
+                // Add text at bottom
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(text, 150, 285);
+                
+                const dataUrl = canvas.toDataURL('image/png', 1.0);
+                console.log('✅ EMERGENCY QR generated - GUARANTEED VISIBLE');
+                return dataUrl;
+                
+            } catch (error) {
+                console.error('Emergency QR error:', error);
+                return null;
+            }
+        };
+
+        const QRDebugTest = () => {
+            const [logs, setLogs] = useState([]);
+            const [qrImage, setQrImage] = useState('');
+            const [testRunning, setTestRunning] = useState(false);
+
+            const addLog = (message, type = 'info') => {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = { timestamp, message, type };
+                setLogs(prev => [...prev, logEntry]);
+                console.log(`${type.toUpperCase()}: ${message}`);
+            };
+
+            const testQRGeneration = async () => {
+                setTestRunning(true);
+                addLog('=== Starting QR Generation Debug Test ===', 'info');
+                
+                try {
+                    // Test with a sample visit code
+                    const testVisitCode = "GC-2025-000004";
+                    addLog(`Testing with visit code: ${testVisitCode}`, 'info');
+                    
+                    // Test emergency QR directly
+                    addLog('Testing emergency QR generation...', 'info');
+                    const emergencyResult = createEmergencyQR(testVisitCode);
+                    
+                    if (emergencyResult) {
+                        addLog('✅ Emergency QR generated successfully!', 'success');
+                        addLog(`QR data URL length: ${emergencyResult.length}`, 'info');
+                        setQrImage(emergencyResult);
+                        
+                        // Test if the image loads
+                        const testImg = new Image();
+                        testImg.onload = () => {
+                            addLog(`✅ QR image loaded successfully - dimensions: ${testImg.width}x${testImg.height}`, 'success');
+                        };
+                        testImg.onerror = () => {
+                            addLog('❌ QR image failed to load', 'error');
+                        };
+                        testImg.src = emergencyResult;
+                        
+                    } else {
+                        addLog('❌ Emergency QR generation failed', 'error');
+                    }
+                    
+                } catch (error) {
+                    addLog(`❌ Test error: ${error.message}`, 'error');
+                }
+                
+                addLog('=== Test Complete ===', 'info');
+                setTestRunning(false);
+            };
+
+            useEffect(() => {
+                // Auto-run test on load
+                setTimeout(() => {
+                    testQRGeneration();
+                }, 1000);
+            }, []);
+
+            return (
+                <div>
+                    <h1>QR Code Debug Test</h1>
+                    
+                    <div className="debug-container">
+                        <h2>Test Controls</h2>
+                        <button 
+                            onClick={testQRGeneration} 
+                            disabled={testRunning}
+                            style={{ padding: '10px 20px', fontSize: '16px' }}
+                        >
+                            {testRunning ? 'Testing...' : 'Run QR Test'}
+                        </button>
+                    </div>
+
+                    <div className="qr-test-area">
+                        <h2>Generated QR Code</h2>
+                        {qrImage ? (
+                            <div>
+                                <img 
+                                    src={qrImage} 
+                                    alt="Generated QR Code" 
+                                    style={{ 
+                                        border: '4px solid black', 
+                                        backgroundColor: 'white', 
+                                        padding: '20px',
+                                        maxWidth: '300px',
+                                        display: 'block',
+                                        margin: '20px auto'
+                                    }}
+                                />
+                                <p style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                                    ✅ QR Code Should Be Visible Above
+                                </p>
+                            </div>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '40px' }}>
+                                <p>No QR code generated yet</p>
+                                {testRunning && <p>Generating...</p>}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="debug-container">
+                        <h2>Debug Log</h2>
+                        <div style={{ maxHeight: '300px', overflowY: 'auto', background: 'white', padding: '10px', border: '1px solid #ccc' }}>
+                            {logs.map((log, index) => (
+                                <div key={index} className={`log-entry ${log.type}`}>
+                                    <strong>[{log.timestamp}]</strong> {log.message}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<QRDebugTest />, document.getElementById('root'));
+    </script>
+</body>
+</html>

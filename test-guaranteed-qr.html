@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Force Visible QR Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .qr-container { 
+            border: 3px solid red; 
+            padding: 20px; 
+            margin: 20px 0; 
+            background: white; 
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .debug-info { 
+            background: #f0f0f0; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            font-family: monospace;
+        }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Force Visible QR Code Test</h1>
+    
+    <div class="debug-info">
+        <h3>Testing Emergency QR Generation</h3>
+        <p>This will create a guaranteed visible QR code</p>
+    </div>
+    
+    <div id="qr-container" class="qr-container">
+        <p>QR Code will appear here...</p>
+    </div>
+    
+    <div id="result" class="debug-info"></div>
+
+    <script>
+        function createGuaranteedVisibleQR(text) {
+            console.log('=== CREATING GUARANTEED VISIBLE QR ===');
+            console.log('Text:', text);
+            
+            try {
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = 300;
+                canvas.height = 300;
+                const ctx = canvas.getContext('2d');
+                
+                if (!ctx) {
+                    throw new Error('Canvas context not available');
+                }
+                
+                console.log('✅ Canvas created');
+                
+                // White background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, 300, 300);
+                console.log('✅ White background');
+                
+                // Thick black border
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 15;
+                ctx.strokeRect(7, 7, 286, 286);
+                console.log('✅ Thick black border');
+                
+                // Large finder patterns - IMPOSSIBLE TO MISS
+                ctx.fillStyle = '#000000';
+                
+                // Top-left finder (HUGE)
+                ctx.fillRect(25, 25, 60, 60);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(35, 35, 40, 40);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(45, 45, 20, 20);
+                
+                // Top-right finder (HUGE)
+                ctx.fillRect(215, 25, 60, 60);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(225, 35, 40, 40);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(235, 45, 20, 20);
+                
+                // Bottom-left finder (HUGE)
+                ctx.fillRect(25, 215, 60, 60);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(35, 225, 40, 40);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(45, 235, 20, 20);
+                
+                console.log('✅ Finder patterns drawn');
+                
+                // Create a VERY visible pattern in the center
+                ctx.fillStyle = '#000000';
+                const moduleSize = 10;
+                
+                // Generate checkerboard pattern - VERY OBVIOUS
+                for (let row = 0; row < 10; row++) {
+                    for (let col = 0; col < 10; col++) {
+                        if ((row + col) % 2 === 0) {
+                            ctx.fillRect(
+                                100 + col * moduleSize,
+                                100 + row * moduleSize,
+                                moduleSize,
+                                moduleSize
+                            );
+                        }
+                    }
+                }
+                
+                console.log('✅ Data pattern drawn');
+                
+                // Add text at bottom
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(text, 150, 290);
+                
+                console.log('✅ Text added');
+                
+                // Convert to data URL
+                const dataUrl = canvas.toDataURL('image/png', 1.0);
+                console.log('✅ Data URL generated, length:', dataUrl.length);
+                
+                return dataUrl;
+                
+            } catch (error) {
+                console.error('❌ QR generation failed:', error);
+                return null;
+            }
+        }
+        
+        function testQRGeneration() {
+            const resultDiv = document.getElementById('result');
+            const container = document.getElementById('qr-container');
+            
+            console.log('Starting QR test...');
+            resultDiv.innerHTML = '<p>Generating QR code...</p>';
+            
+            try {
+                const testCode = "GC-2025-000004";
+                const qrDataUrl = createGuaranteedVisibleQR(testCode);
+                
+                if (qrDataUrl) {
+                    console.log('✅ QR generation successful!');
+                    
+                    // Create image element
+                    const img = document.createElement('img');
+                    img.src = qrDataUrl;
+                    img.style.border = '5px solid black';
+                    img.style.backgroundColor = 'white';
+                    img.style.padding = '20px';
+                    img.style.maxWidth = '300px';
+                    
+                    // Clear container and add image
+                    container.innerHTML = '';
+                    container.appendChild(img);
+                    
+                    // Test image loading
+                    img.onload = () => {
+                        console.log('✅ QR image loaded successfully!');
+                        resultDiv.innerHTML = `
+                            <div class="success">
+                                <h3>✅ SUCCESS! QR Code Generated and Loaded</h3>
+                                <p>Data URL length: ${qrDataUrl.length} characters</p>
+                                <p>Image dimensions: ${img.naturalWidth}x${img.naturalHeight}</p>
+                                <p>Visit code: ${testCode}</p>
+                            </div>
+                        `;
+                    };
+                    
+                    img.onerror = () => {
+                        console.error('❌ QR image failed to load');
+                        resultDiv.innerHTML = '<div class="error">❌ Image failed to load</div>';
+                    };
+                    
+                } else {
+                    console.error('❌ QR generation returned null');
+                    resultDiv.innerHTML = '<div class="error">❌ QR generation failed</div>';
+                }
+                
+            } catch (error) {
+                console.error('❌ Test failed:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Test error: ${error.message}</div>`;
+            }
+        }
+        
+        // Run test when page loads
+        window.addEventListener('load', () => {
+            setTimeout(testQRGeneration, 1000); // Small delay to ensure everything is ready
+        });
+    </script>
+</body>
+</html>

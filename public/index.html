@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grand City HQ - Guest Pass Management System</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- QR Code Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    
+    <!-- jsQR Library for QR Scanning -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    
+    <style>
+        body { 
+            margin: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .qr-scanner-overlay {
+            position: relative;
+            overflow: hidden;
+        }
+        .qr-scanner-overlay::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 2px solid #4F46E5;
+            border-radius: 8px;
+            z-index: 10;
+        }
+        .qr-scanner-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 5;
+        }
+        .scanner-content {
+            position: relative;
+            z-index: 15;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="fade-in"></div>
+
+    <script>
+        // API Service - Database-backed Guest Pass System
+        window.GuestPassAPI = {
+            baseUrl: '/api',
+            
+            // Fetch all visits from database
+            async getVisits() {
+                try {
+                    const response = await fetch(`${this.baseUrl}/visits`);
+                    if (!response.ok) throw new Error('Failed to fetch visits');
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error fetching visits:', error);
+                    return [];
+                }
+            },
+            
+            // Fetch all executives from database
+            async getExecutives() {
+                try {
+                    const response = await fetch(`${this.baseUrl}/executives`);
+                    if (!response.ok) throw new Error('Failed to fetch executives');
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error fetching executives:', error);
+                    return [];
+                }
+            },
+            
+            // Create new visit in database
+            async saveVisit(visitData) {
+                try {
+                    const response = await fetch(`${this.baseUrl}/visits`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(visitData)
+                    });
+                    if (!response.ok) throw new Error('Failed to create visit');
+                    const result = await response.json();
+                    return result.visit;
+                } catch (error) {
+                    console.error('Error creating visit:', error);
+                    throw error;
+                }
+            },
+            
+            // Validate QR code
+            async validateVisit(code) {
+                try {
+                    const response = await fetch(`${this.baseUrl}/visits/validate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code })
+                    });
+                    if (!response.ok) throw new Error('Failed to validate visit');
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error validating visit:', error);
+                    return { valid: false, error: 'Validation failed' };
+                }
+            },
+            
+            // Check-in visitor
+            async checkIn(visitId) {
+                try {
+                    const response = await fetch(`${this.baseUrl}/visits/${visitId}/checkin`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (!response.ok) throw new Error('Failed to check in');
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error checking in:', error);
+                    throw error;
+                }
+            },
+            
+            // Check-out visitor
+            async checkOut(visitId) {
+                try {
+                    const response = await fetch(`${this.baseUrl}/visits/${visitId}/checkout`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (!response.ok) throw new Error('Failed to check out');
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error checking out:', error);
+                    throw error;
+                }
+            }
+        };
+
+        // Utility Functions
+        function generateQRCode(text) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                QRCode.toCanvas(canvas, text, { 
+                    width: 200, 
+                    margin: 2,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                }, (error) => {
+                    if (error) {
+                        console.error('QR generation error:', error);
+                        resolve(null);
+                    } else {
+                        resolve(canvas.toDataURL('image/png'));
+                    }
+                });
+            });
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+        }
+
+        function formatTime(timeString) {
+            return timeString;
+        }
+
+        // UI Components
+        class GuestPassApp {
+            constructor() {
+                this.currentUser = null;
+                this.currentView = 'login';
+                this.selectedVisit = null;
+                this.qrScanner = null;
+                this.visits = [];
+                this.executives = [];
+                this.init();
+            }
+
+            async init() {
+                this.loadUser();
+                this.setupEventListeners();
+                await this.loadData();
+                this.render();
+                // Refresh data every 10 seconds for real-time sync
+                setInterval(() => this.loadData(true), 10000);
+            }
+
+            async loadData(silent = false) {
+                try {
+                    this.executives = await window.GuestPassAPI.getExecutives();
+                    this.visits = await window.GuestPassAPI.getVisits();
+                    if (!silent) {
+                        console.log('Data loaded from database:', { visits: this.visits.length, executives: this.executives.length });
+                    }
+                    if (silent && this.currentView !== 'login') {
+                        this.render(); // Auto-refresh UI with new data
+                    }
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                }
+            }
+
+            loadUser() {
+                const savedUser = localStorage.getItem('guestpass_user');
+                if (savedUser) {
+                    try {
+                        this.currentUser = JSON.parse(savedUser);
+                        this.currentView = 'dashboard';
+                    } catch (e) {
+                        console.log('Invalid user session');
+                    }
+                }
+            }
+
+            setupEventListeners() {
+                // Listen for real-time updates from other devices
+                window.addEventListener('storage', (e) => {
+                    if (e.key === 'guestpass_update' && e.newValue) {
+                        try {
+                            const update = JSON.parse(e.newValue);
+                            console.log('Received update from another device:', update);
+                            this.render();
+                        } catch (err) {
+                            console.log('Update received from another device');
+                        }
+                    }
+                });
+            }
+
+            login(role, executiveId = null) {
+                this.currentUser = { role, executiveId };
+                localStorage.setItem('guestpass_user', JSON.stringify(this.currentUser));
+                this.currentView = 'dashboard';
+                this.render();
+            }
+
+            logout() {
+                this.currentUser = null;
+                localStorage.removeItem('guestpass_user');
+                this.currentView = 'login';
+                this.render();
+            }
+
+            async showDigitalPass(visit) {
+                this.selectedVisit = visit;
+                this.currentView = 'digital_pass';
+                await this.render();
+                
+                // Generate QR code after rendering
+                const qrCanvas = document.getElementById('qr-canvas');
+                if (qrCanvas && visit.code) {
+                    const qrUrl = await generateQRCode(visit.code);
+                    if (qrUrl) {
+                        const qrImg = document.getElementById('qr-image');
+                        if (qrImg) {
+                            qrImg.src = qrUrl;
+                            qrImg.style.display = 'block';
+                            document.getElementById('qr-loading').style.display = 'none';
+                        }
+                    }
+                }
+            }
+
+            async validateVisit(code) {
+                const result = await window.GuestPassAPI.validateVisit(code);
+                
+                if (!result.valid) {
+                    return { valid: false, message: result.error || 'Invalid visit code', visit: result.visit };
+                }
+
+                return { valid: true, visit: result.visit };
+            }
+
+            async checkInVisitor(visitId) {
+                try {
+                    await window.GuestPassAPI.checkIn(visitId);
+                    alert('✅ Visitor checked in successfully!');
+                    this.render();
+                    return true;
+                } catch (error) {
+                    alert('❌ Failed to check in visitor. Please try again.');
+                    return false;
+                }
+            }
+
+            async checkOutVisitor(visitId) {
+                try {
+                    await window.GuestPassAPI.checkOut(visitId);
+                    alert('✅ Visitor checked out successfully!');
+                    this.render();
+                    return true;
+                } catch (error) {
+                    alert('❌ Failed to check out visitor. Please try again.');
+                    return false;
+                }
+            }
+
+            // QR Scanner Methods
+            async startQRScanner() {
+                this.currentView = 'qr_scanner';
+                await this.render();
+                this.setupQRScanner();
+            }
+
+            setupQRScanner() {
+                const video = document.getElementById('qr-video');
+                const canvas = document.getElementById('qr-canvas-hidden');
+                const scannerContainer = document.getElementById('scanner-container');
+                
+                if (!video || !canvas) return;
+
+                // Get camera devices
+                navigator.mediaDevices.enumerateDevices()
+                    .then(devices => {
+                        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                        if (videoDevices.length === 0) {
+                            this.showScannerError('No camera devices found');
+                            return;
+                        }
+
+                        // Request camera permission
+                        return navigator.mediaDevices.getUserMedia({ 
+                            video: { 
+                                deviceId: videoDevices[0].deviceId,
+                                facingMode: 'environment'
+                            } 
+                        });
+                    })
+                    .then(stream => {
+                        video.srcObject = stream;
+                        video.play();
+                        this.startQRScanning(video, canvas);
+                    })
+                    .catch(err => {
+                        console.error('Camera error:', err);
+                        const errorMsg = err.name === 'NotAllowedError' 
+                            ? 'Camera permission denied. Please enable camera access.'
+                            : 'Camera not available';
+                        this.showScannerError(errorMsg);
+                    });
+            }
+
+            startQRScanning(video, canvas) {
+                const canvasContext = canvas.getContext('2d');
+                let scanning = true;
+
+                const scanFrame = () => {
+                    if (!scanning || !video.videoWidth || !video.videoHeight) {
+                        requestAnimationFrame(scanFrame);
+                        return;
+                    }
+
+                    try {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                        const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+                        const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                        if (code && code.data) {
+                            scanning = false;
+                            this.stopQRScanner();
+                            this.handleQRScan(code.data);
+                        } else {
+                            requestAnimationFrame(scanFrame);
+                        }
+                    } catch (err) {
+                        console.error('QR scan error:', err);
+                        requestAnimationFrame(scanFrame);
+                    }
+                };
+
+                requestAnimationFrame(scanFrame);
+            }
+
+            stopQRScanner() {
+                const video = document.getElementById('qr-video');
+                if (video && video.srcObject) {
+                    const stream = video.srcObject;
+                    const tracks = stream.getTracks();
+                    tracks.forEach(track => track.stop());
+                    video.srcObject = null;
+                }
+            }
+
+            showScannerError(message) {
+                const errorDiv = document.getElementById('scanner-error');
+                if (errorDiv) {
+                    errorDiv.textContent = message;
+                    errorDiv.style.display = 'block';
+                }
+            }
+
+            async handleQRScan(qrData) {
+                console.log('QR Code scanned:', qrData);
+                const result = await this.validateVisit(qrData);
+                
+                if (result.valid) {
+                    this.showDigitalPass(result.visit);
+                } else {
+                    alert(`❌ ${result.message}`);
+                    this.currentView = 'dashboard';
+                    this.render();
+                }
+            }
+
+            // Main render method
+            async render() {
+                const app = document.getElementById('app');
+                
+                if (this.currentView === 'login') {
+                    app.innerHTML = this.renderLogin();
+                    this.attachLoginListeners();
+                } else if (this.currentView === 'dashboard') {
+                    app.innerHTML = this.renderDashboard();
+                    this.attachDashboardListeners();
+                } else if (this.currentView === 'digital_pass') {
+                    app.innerHTML = this.renderDigitalPass();
+                    this.attachPassListeners();
+                } else if (this.currentView === 'qr_scanner') {
+                    app.innerHTML = this.renderQRScanner();
+                    this.attachScannerListeners();
+                }
+            }
+
+            renderLogin() {
+                return `
+                    <div class="min-h-screen flex items-center justify-center p-4">
+                        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+                            <div class="text-center mb-8">
+                                <div class="bg-indigo-600 text-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <h1 class="text-3xl font-bold text-gray-800">Grand City HQ</h1>
+                                <p class="text-gray-600 mt-2">Guest Pass Management System</p>
+                                <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-4">
+                                    <div class="flex items-center">
+                                        <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <div>
+                                            <p class="text-sm font-medium text-green-900">Multi-User Shared System</p>
+                                            <p class="text-xs text-green-700 mt-1">All data synchronized across all devices in real-time</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Your Role</label>
+                                    <select id="role-select" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                        <option value="executive">Executive</option>
+                                        <option value="staff">Staff Member</option>
+                                        <option value="guard">Security Guard</option>
+                                        <option value="receptionist">Receptionist</option>
+                                    </select>
+                                </div>
+
+                                <div id="executive-select" class="hidden">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Executive</label>
+                                    <select class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                        ${this.executives.map(exec => 
+                                            `<option value="${exec.id}">${exec.name} - ${exec.position}</option>`
+                                        ).join('')}
+                                    </select>
+                                </div>
+
+                                <button id="login-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200 shadow-lg hover:shadow-xl">
+                                    Login to Dashboard
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderDashboard() {
+                const user = this.currentUser;
+                const visits = this.visits;
+                const todayVisits = visits.filter(v => v.date === new Date().toISOString().split('T')[0]);
+                const myVisits = user.role === 'executive' ? todayVisits.filter(v => v.executive_id === user.executiveId) : todayVisits;
+                
+                let dashboardContent = '';
+                
+                if (user.role === 'guard') {
+                    dashboardContent = this.renderGuardDashboard();
+                } else if (user.role === 'executive') {
+                    dashboardContent = this.renderExecutiveDashboard();
+                } else {
+                    dashboardContent = this.renderStaffDashboard();
+                }
+
+                return `
+                    <div class="min-h-screen bg-gray-50">
+                        <!-- Header -->
+                        <div class="bg-white shadow-sm border-b">
+                            <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h1 class="text-2xl font-bold text-gray-900">Grand City HQ Dashboard</h1>
+                                        <p class="text-sm text-gray-600">Welcome, ${user.role.charAt(0).toUpperCase() + user.role.slice(1)}</p>
+                                    </div>
+                                    <div class="flex items-center space-x-4">
+                                        <div class="text-right">
+                                            <p class="text-sm text-gray-600">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+                                            <p class="text-xs text-green-600">✅ Shared System Active</p>
+                                        </div>
+                                        <button id="logout-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                            Logout
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${dashboardContent}
+                    </div>
+                `;
+            }
+
+            renderGuardDashboard() {
+                return `
+                    <div class="max-w-4xl mx-auto px-4 py-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            <div class="bg-white rounded-lg shadow p-6 text-center">
+                                <div class="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">QR Code Scanner</h3>
+                                <p class="text-sm text-gray-600 mb-4">Scan visitor QR codes for quick validation</p>
+                                <button id="qr-scanner-btn" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                                    Open QR Scanner
+                                </button>
+                            </div>
+                            
+                            <div class="bg-white rounded-lg shadow p-6 text-center">
+                                <div class="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">Walk-in Registration</h3>
+                                <p class="text-sm text-gray-600 mb-4">Register unexpected visitors instantly</p>
+                                <button id="walkin-btn" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                    Register Walk-in
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Manual Code Validation -->
+                        <div class="bg-white rounded-lg shadow p-6 mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Manual Code Validation</h3>
+                            <div class="flex space-x-4">
+                                <input type="text" id="manual-code" placeholder="Enter visit code (e.g., GC-2025-000001)" 
+                                       class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                <button id="validate-btn" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    Validate
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Today's Visitors -->
+                        <div class="bg-white rounded-lg shadow">
+                            <div class="px-6 py-4 border-b">
+                                <h3 class="text-lg font-semibold text-gray-900">Today's Expected Visitors</h3>
+                            </div>
+                            <div class="divide-y">
+                                ${this.renderVisitList(this.visits.filter(v => v.date === new Date().toISOString().split('T')[0]))}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderExecutiveDashboard() {
+                const user = this.currentUser;
+                const visits = this.visits;
+                const myVisits = visits.filter(v => v.executive_id === user.executiveId);
+                const todayVisits = myVisits.filter(v => v.date === new Date().toISOString().split('T')[0]);
+                const pendingApprovals = myVisits.filter(v => v.status === 'scheduled');
+                const executive = this.executives.find(e => e.id === user.executiveId);
+
+                return `
+                    <div class="max-w-7xl mx-auto px-4 py-8">
+                        <!-- Stats -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="text-sm text-gray-600 mb-1">Today</div>
+                                <div class="text-3xl font-bold text-indigo-600">${todayVisits.length}</div>
+                                <div class="text-xs text-gray-500 mt-1">Scheduled Visits</div>
+                            </div>
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="text-sm text-gray-600 mb-1">Pending</div>
+                                <div class="text-3xl font-bold text-orange-600">${pendingApprovals.length}</div>
+                                <div class="text-xs text-gray-500 mt-1">Awaiting Approval</div>
+                            </div>
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="text-sm text-gray-600 mb-1">Checked In</div>
+                                <div class="text-3xl font-bold text-green-600">${todayVisits.filter(v => v.status === 'checked_in').length}</div>
+                                <div class="text-xs text-gray-500 mt-1">Currently Here</div>
+                            </div>
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="text-sm text-gray-600 mb-1">Total</div>
+                                <div class="text-3xl font-bold text-blue-600">${myVisits.length}</div>
+                                <div class="text-xs text-gray-500 mt-1">All Visits</div>
+                            </div>
+                        </div>
+
+                        <!-- Today's Schedule -->
+                        <div class="bg-white rounded-lg shadow">
+                            <div class="px-6 py-4 border-b">
+                                <h3 class="text-lg font-semibold text-gray-900">Your Schedule - ${executive.name}</h3>
+                            </div>
+                            <div class="divide-y">
+                                ${this.renderVisitList(todayVisits)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderStaffDashboard() {
+                return `
+                    <div class="max-w-4xl mx-auto px-4 py-8">
+                        <div class="bg-white rounded-lg shadow p-8">
+                            <h2 class="text-xl font-semibold text-gray-900 mb-6">Schedule New Visit</h2>
+                            <form id="schedule-form" class="space-y-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Visitor Name *</label>
+                                        <input type="text" name="visitorName" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Company</label>
+                                        <input type="text" name="company" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
+                                        <input type="tel" name="phone" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                        <input type="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Meeting With *</label>
+                                        <select name="executiveId" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                            ${this.executives.map(exec => 
+                                                `<option value="${exec.id}">${exec.name} - ${exec.position}</option>`
+                                            ).join('')}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+                                        <input type="date" name="date" required value="${new Date().toISOString().split('T')[0]}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">From Time *</label>
+                                        <input type="time" name="timeFrom" required value="09:00" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">To Time *</label>
+                                        <input type="time" name="timeTo" required value="10:00" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Purpose *</label>
+                                    <textarea name="purpose" required rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="Purpose of visit..."></textarea>
+                                </div>
+                                <button type="submit" class="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                                    Schedule Visit & Generate Pass
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderVisitList(visits) {
+                if (visits.length === 0) {
+                    return `
+                        <div class="p-8 text-center text-gray-500">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <p>No visits scheduled</p>
+                        </div>
+                    `;
+                }
+
+                return visits.map(visit => `
+                    <div class="p-6 hover:bg-gray-50 transition-colors">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-start space-x-4 flex-1">
+                                <div class="text-center min-w-[80px]">
+                                    <div class="text-lg font-bold text-indigo-600">${visit.time_from || visit.timeFrom}</div>
+                                    <div class="text-xs text-gray-500">to ${visit.time_to || visit.timeTo}</div>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center mb-2">
+                                        <h3 class="text-lg font-semibold text-gray-900">${visit.visitor_name || visit.visitor?.name}</h3>
+                                        <span class="ml-3 px-3 py-1 text-xs font-medium rounded-full ${
+                                            visit.status === 'checked_in' ? 'bg-green-100 text-green-800' :
+                                            visit.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
+                                            'bg-yellow-100 text-yellow-800'
+                                        }">
+                                            ${visit.status.replace('_', ' ').toUpperCase()}
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-1">${visit.visitor_company || visit.visitor?.company}</p>
+                                    <p class="text-sm text-gray-700">${visit.purpose}</p>
+                                    <p class="text-xs text-gray-500 mt-2">Code: ${visit.code}</p>
+                                    ${visit.actual_checkin ? `<p class="text-xs text-green-600 mt-1">✓ Checked in at ${new Date(visit.actual_checkin).toLocaleString()}</p>` : ''}
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <button onclick="guestPassApp.showDigitalPass(${JSON.stringify(visit).replace(/"/g, '&quot;')})" 
+                                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
+                                    View Pass
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            renderDigitalPass() {
+                const visit = this.selectedVisit;
+                const executive = this.executives.find(e => e.id === (visit.executive_id || visit.executiveId));
+                const statusColor = visit.status === 'checked_in' ? 'bg-green-500' : 'bg-orange-500';
+                const statusText = visit.status === 'checked_in' ? 'CHECKED IN' : visit.status === 'scheduled' ? 'SCHEDULED' : 'PENDING';
+                
+                const visitorName = visit.visitor_name || visit.visitor?.name;
+                const visitorCompany = visit.visitor_company || visit.visitor?.company;
+                const timeFrom = visit.time_from || visit.timeFrom;
+                const timeTo = visit.time_to || visit.timeTo;
+
+                return `
+                    <div class="min-h-screen bg-black bg-opacity-50 flex items-center justify-center p-4">
+                        <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                            <div class="p-6">
+                                <div class="flex justify-between items-center mb-6">
+                                    <h2 class="text-2xl font-bold text-gray-900">Digital Visitor Pass</h2>
+                                    <button onclick="guestPassApp.currentView='dashboard'; guestPassApp.render();" 
+                                            class="text-gray-400 hover:text-gray-600 text-2xl font-bold">
+                                        ×
+                                    </button>
+                                </div>
+
+                                <!-- Digital Pass Card -->
+                                <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl p-6 text-white mb-6 shadow-2xl">
+                                    <div class="flex justify-between items-start mb-6">
+                                        <div>
+                                            <h3 class="text-sm font-semibold opacity-90">GRAND CITY HQ</h3>
+                                            <p class="text-xs opacity-75">Visitor Pass</p>
+                                        </div>
+                                        <div class="${statusColor} px-3 py-1 rounded-full text-xs font-bold">
+                                            ${statusText}
+                                        </div>
+                                    </div>
+
+                                    <!-- QR Code -->
+                                    <div class="bg-white rounded-lg p-4 mb-6 flex justify-center">
+                                        <div id="qr-loading" class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                                        <img id="qr-image" class="w-48 h-48" style="display: none;" alt="QR Code">
+                                    </div>
+                                    <canvas id="qr-canvas" style="display: none;"></canvas>
+
+                                    <!-- Visit Code -->
+                                    <div class="bg-white bg-opacity-20 rounded-lg p-4 mb-6 backdrop-blur-sm">
+                                        <p class="text-xs opacity-75 mb-1">VISIT CODE</p>
+                                        <p class="text-2xl font-bold tracking-wider">${visit.code}</p>
+                                    </div>
+
+                                    <!-- Visitor Details -->
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <p class="text-xs opacity-75">VISITOR</p>
+                                                <p class="font-semibold">${visitorName}</p>
+                                                ${visitorCompany ? `<p class="text-sm opacity-90">${visitorCompany}</p>` : ''}
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p class="text-xs opacity-75">MEETING WITH</p>
+                                                <p class="text-sm font-semibold">${executive?.name || 'N/A'}</p>
+                                                <p class="text-xs opacity-90">${executive?.position || ''}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs opacity-75">VISIT TYPE</p>
+                                                <p class="text-sm font-semibold capitalize">Scheduled</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p class="text-xs opacity-75">DATE</p>
+                                                <p class="text-sm font-semibold">${formatDate(visit.date)}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs opacity-75">TIME</p>
+                                                <p class="text-sm font-semibold">${timeFrom} - ${timeTo}</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="border-t border-white border-opacity-30 pt-3 mt-3">
+                                            <p class="text-xs opacity-75">PURPOSE</p>
+                                            <p class="text-sm">${visit.purpose}</p>
+                                        </div>
+
+                                        ${visit.actual_checkin ? `
+                                            <div class="border-t border-white border-opacity-30 pt-3 mt-3">
+                                                <p class="text-xs opacity-75">CHECKED IN</p>
+                                                <p class="text-xs">${new Date(visit.actual_checkin).toLocaleString()}</p>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+
+                                    <!-- Footer -->
+                                    <div class="mt-6 pt-4 border-t border-white border-opacity-30 text-center">
+                                        <p class="text-xs opacity-75">Please present this pass at the security gate</p>
+                                        <p class="text-xs opacity-60 mt-1">Generated: ${new Date(visit.created_at || visit.createdAt).toLocaleString()}</p>
+                                    </div>
+                                </div>
+
+                                <button onclick="guestPassApp.currentView='dashboard'; guestPassApp.render();" 
+                                        class="w-full px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderQRScanner() {
+                return `
+                    <div class="min-h-screen bg-gray-50 p-4">
+                        <div class="max-w-2xl mx-auto">
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="flex justify-between items-center mb-6">
+                                    <h2 class="text-2xl font-bold text-gray-900">QR Code Scanner</h2>
+                                    <button onclick="guestPassApp.stopQRScanner(); guestPassApp.currentView='dashboard'; guestPassApp.render();" 
+                                            class="text-gray-400 hover:text-gray-600 text-2xl font-bold">
+                                        ×
+                                    </button>
+                                </div>
+
+                                <div id="scanner-error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4" style="display: none;">
+                                    <div class="flex items-center">
+                                        <svg class="w-5 h-5 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                        </svg>
+                                        <div>
+                                            <p class="text-sm font-medium text-red-900">Camera Access Error</p>
+                                            <p class="text-sm text-red-700 mt-1" id="error-message"></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="relative mb-4 qr-scanner-overlay">
+                                    <video id="qr-video" class="w-full rounded-lg" playsinline muted></video>
+                                    <canvas id="qr-canvas-hidden" class="hidden"></canvas>
+                                    
+                                    <div class="scanner-content">
+                                        <div class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                                            Scanning...
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="text-center">
+                                    <p class="text-sm text-gray-600 mb-4">Point your camera at the QR code</p>
+                                    <p class="text-xs text-gray-500">Make sure the QR code is clearly visible in the camera frame</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Event Listeners
+            attachLoginListeners() {
+                const roleSelect = document.getElementById('role-select');
+                const executiveSelect = document.getElementById('executive-select');
+                const loginBtn = document.getElementById('login-btn');
+
+                roleSelect.addEventListener('change', (e) => {
+                    if (e.target.value === 'executive') {
+                        executiveSelect.classList.remove('hidden');
+                    } else {
+                        executiveSelect.classList.add('hidden');
+                    }
+                });
+
+                loginBtn.addEventListener('click', () => {
+                    const role = roleSelect.value;
+                    const executiveId = role === 'executive' ? 
+                        parseInt(executiveSelect.querySelector('select').value) : null;
+                    this.login(role, executiveId);
+                });
+            }
+
+            attachDashboardListeners() {
+                const logoutBtn = document.getElementById('logout-btn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', () => this.logout());
+                }
+
+                const qrScannerBtn = document.getElementById('qr-scanner-btn');
+                if (qrScannerBtn) {
+                    qrScannerBtn.addEventListener('click', () => this.startQRScanner());
+                }
+
+                const validateBtn = document.getElementById('validate-btn');
+                if (validateBtn) {
+                    validateBtn.addEventListener('click', async () => {
+                        const code = document.getElementById('manual-code').value;
+                        if (code) {
+                            const result = await this.validateVisit(code);
+                            if (result.valid) {
+                                this.showDigitalPass(result.visit);
+                            } else {
+                                alert(`❌ ${result.message}`);
+                            }
+                        }
+                    });
+                }
+
+                const scheduleForm = document.getElementById('schedule-form');
+                if (scheduleForm) {
+                    scheduleForm.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const formData = new FormData(scheduleForm);
+                        try {
+                            const visit = await window.GuestPassAPI.saveVisit({
+                                visitor: {
+                                    name: formData.get('visitorName'),
+                                    company: formData.get('company'),
+                                    phone: formData.get('phone'),
+                                    email: formData.get('email')
+                                },
+                                executive_id: parseInt(formData.get('executiveId')),
+                                purpose: formData.get('purpose'),
+                                date: formData.get('date'),
+                                time_from: formData.get('timeFrom'),
+                                time_to: formData.get('timeTo')
+                            });
+                            
+                            await this.loadData(); // Refresh data
+                            this.showDigitalPass(visit);
+                            scheduleForm.reset();
+                            alert('✅ Visit scheduled successfully!');
+                        } catch (error) {
+                            alert('❌ Failed to schedule visit. Please try again.');
+                            console.error(error);
+                        }
+                    });
+                }
+            }
+
+            attachPassListeners() {
+                // Pass listeners are handled inline in the HTML
+            }
+
+            attachScannerListeners() {
+                // Scanner listeners are handled in setupQRScanner
+            }
+        }
+
+        // Initialize the app
+        window.guestPassApp = new GuestPassApp();
+    </script>
+</body>
+</html>

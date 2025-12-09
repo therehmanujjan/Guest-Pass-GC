@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test QR Generation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <div style="padding: 20px;">
+        <h1>QR Code Generation Test</h1>
+        <div id="test-qr"></div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function testQRGeneration() {
+            const testCode = "TEST123";
+            const container = document.getElementById('test-qr');
+            const result = document.getElementById('result');
+            
+            try {
+                // Test 1: Basic QR generation
+                const qrcode = new QRCode(container, {
+                    text: testCode,
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",
+                    colorLight: "#FFFFFF",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+                
+                result.innerHTML += '<p style="color: green;">✓ QR Code generated successfully</p>';
+                
+                // Test 2: Check if canvas was created
+                setTimeout(() => {
+                    const canvas = container.querySelector('canvas');
+                    const img = container.querySelector('img');
+                    
+                    if (canvas) {
+                        result.innerHTML += '<p style="color: green;">✓ Canvas element found</p>';
+                        
+                        // Test 3: Check canvas content
+                        const ctx = canvas.getContext('2d');
+                        const imageData = ctx.getImageData(0, 0, 10, 10);
+                        let blackPixels = 0;
+                        let whitePixels = 0;
+                        
+                        for (let i = 0; i < imageData.data.length; i += 4) {
+                            const r = imageData.data[i];
+                            const g = imageData.data[i + 1];
+                            const b = imageData.data[i + 2];
+                            
+                            if (r < 50 && g < 50 && b < 50) blackPixels++;
+                            else if (r > 200 && g > 200 && b > 200) whitePixels++;
+                        }
+                        
+                        result.innerHTML += `<p>Black pixels: ${blackPixels}, White pixels: ${whitePixels}</p>`;
+                        
+                        if (blackPixels > 0) {
+                            result.innerHTML += '<p style="color: green;">✓ QR code has black pixels</p>';
+                        } else {
+                            result.innerHTML += '<p style="color: red;">✗ QR code has no black pixels</p>';
+                        }
+                        
+                        // Test 4: Convert to data URL
+                        const dataUrl = canvas.toDataURL('image/png');
+                        result.innerHTML += `<p>Data URL length: ${dataUrl.length}</p>`;
+                        result.innerHTML += `<p>Data URL preview: ${dataUrl.substring(0, 50)}...</p>`;
+                        
+                        // Test 5: Display the data URL as an image
+                        const testImg = document.createElement('img');
+                        testImg.src = dataUrl;
+                        testImg.style.border = '2px solid black';
+                        testImg.style.margin = '10px';
+                        result.appendChild(testImg);
+                        
+                    } else if (img) {
+                        result.innerHTML += '<p style="color: green;">✓ Image element found</p>';
+                        result.innerHTML += `<p>Image src: ${img.src.substring(0, 50)}...</p>`;
+                    } else {
+                        result.innerHTML += '<p style="color: red;">✗ No canvas or image found</p>';
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                result.innerHTML += `<p style="color: red;">✗ Error: ${error.message}</p>`;
+                console.error('QR generation error:', error);
+            }
+        }
+        
+        // Run test when page loads
+        window.addEventListener('load', testQRGeneration);
+    </script>
+</body>
+</html>

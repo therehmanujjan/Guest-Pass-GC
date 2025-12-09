@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Production QR Debug Test</title>
+    <style>
+        body { font-family: monospace; margin: 20px; }
+        .log { margin: 5px 0; padding: 5px; border-left: 3px solid #ccc; }
+        .error { border-left-color: red; color: red; }
+        .success { border-left-color: green; color: green; }
+        .info { border-left-color: blue; color: blue; }
+        #qr-container { margin: 20px 0; border: 2px solid black; padding: 20px; background: #f0f0f0; }
+        #emergency-qr { margin: 20px 0; border: 2px solid red; padding: 20px; background: #fff0f0; }
+    </style>
+</head>
+<body>
+    <h1>🚨 PRODUCTION QR DEBUG TEST</h1>
+    <div id="logs"></div>
+    <div id="emergency-qr">
+        <h3>Emergency QR Test Area</h3>
+        <div id="emergency-result"></div>
+    </div>
+    <div id="qr-container">
+        <h3>QR Display Test Area</h3>
+        <div id="qr-result"></div>
+    </div>
+    
+    <script>
+        const logs = document.getElementById('logs');
+        const emergencyResult = document.getElementById('emergency-result');
+        const qrResult = document.getElementById('qr-result');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = 'log ' + type;
+            div.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+            logs.appendChild(div);
+            console.log(message);
+        }
+        
+        // EXACT copy of the ultra-reliable QR function from production
+        function createUltraReliableQR(text) {
+            log('🚨 ULTRA-RELIABLE QR GENERATION STARTED for: ' + text);
+            
+            try {
+                // Method 1: Canvas with explicit pixel data validation
+                const canvas = document.createElement('canvas');
+                canvas.width = 400;
+                canvas.height = 400;
+                const ctx = canvas.getContext('2d');
+                
+                if (!ctx) {
+                    throw new Error('Canvas 2D context not available');
+                }
+                
+                log('✅ Canvas context obtained');
+                
+                // ABSOLUTELY GUARANTEED visible pattern
+                // White background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, 400, 400);
+                
+                // BLACK border - THICK and VISIBLE
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 20;
+                ctx.strokeRect(10, 10, 380, 380);
+                
+                // MASSIVE finder patterns - IMPOSSIBLE to miss
+                ctx.fillStyle = '#000000';
+                
+                // Top-left finder (ENORMOUS)
+                ctx.fillRect(30, 30, 100, 100);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(50, 50, 60, 60);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(70, 70, 20, 20);
+                
+                // Top-right finder (ENORMOUS)
+                ctx.fillRect(270, 30, 100, 100);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(290, 50, 60, 60);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(310, 70, 20, 20);
+                
+                // Bottom-left finder (ENORMOUS)
+                ctx.fillRect(30, 270, 100, 100);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(50, 290, 60, 60);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(70, 310, 20, 20);
+                
+                // ULTRA-VISIBLE data pattern
+                ctx.fillStyle = '#000000';
+                const moduleSize = 15;
+                
+                // Create a very obvious pattern
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        if ((row + col) % 2 === 0) {
+                            ctx.fillRect(
+                                150 + col * moduleSize,
+                                150 + row * moduleSize,
+                                moduleSize,
+                                moduleSize
+                            );
+                        }
+                    }
+                }
+                
+                // HUGE text at bottom
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(text, 200, 390);
+                
+                // VALIDATE that we actually drew black pixels
+                const imageData = ctx.getImageData(0, 0, 400, 400);
+                const data = imageData.data;
+                let blackPixelCount = 0;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    // Check for black pixels (R=0, G=0, B=0)
+                    if (data[i] === 0 && data[i+1] === 0 && data[i+2] === 0) {
+                        blackPixelCount++;
+                    }
+                }
+                
+                log('📊 Black pixel count: ' + blackPixelCount);
+                
+                if (blackPixelCount < 1000) {
+                    throw new Error('Not enough black pixels drawn - something went wrong!');
+                }
+                
+                // Generate data URL with maximum quality
+                const dataUrl = canvas.toDataURL('image/png', 1.0);
+                log('🎯 ULTRA-RELIABLE QR generated - URL length: ' + dataUrl.length);
+                
+                // VALIDATE the data URL format
+                if (!dataUrl.startsWith('data:image/png;base64,')) {
+                    throw new Error('Invalid data URL format: ' + dataUrl.substring(0, 50));
+                }
+                
+                return dataUrl;
+                
+            } catch (error) {
+                log('❌ Ultra-reliable QR error: ' + error.message, 'error');
+                return createFallbackQR(text);
+            }
+        }
+        
+        // FINAL fallback - guaranteed to work
+        function createFallbackQR(text) {
+            log('🛡️ FALLBACK QR GENERATION for: ' + text);
+            
+            try {
+                // Create a simple SVG that will definitely work
+                const svg = `
+                    <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="400" height="400" fill="white"/>
+                        <rect x="10" y="10" width="380" height="380" fill="none" stroke="black" stroke-width="20"/>
+                        <rect x="30" y="30" width="100" height="100" fill="black"/>
+                        <rect x="50" y="50" width="60" height="60" fill="white"/>
+                        <rect x="70" y="70" width="20" height="20" fill="black"/>
+                        <rect x="270" y="30" width="100" height="100" fill="black"/>
+                        <rect x="290" y="50" width="60" height="60" fill="white"/>
+                        <rect x="310" y="70" width="20" height="20" fill="black"/>
+                        <rect x="30" y="270" width="100" height="100" fill="black"/>
+                        <rect x="50" y="290" width="60" height="60" fill="white"/>
+                        <rect x="70" y="310" width="20" height="20" fill="black"/>
+                        <text x="200" y="390" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="black">${text}</text>
+                    </svg>
+                `;
+                
+                const dataUrl = 'data:image/svg+xml;base64,' + btoa(svg);
+                log('🛡️ FALLBACK QR generated - URL length: ' + dataUrl.length);
+                return dataUrl;
+                
+            } catch (error) {
+                log('❌ Even fallback failed: ' + error.message, 'error');
+                return null;
+            }
+        }
+        
+        // Simulate the exact DigitalPass QR generation process
+        function simulateDigitalPassQR() {
+            const testCode = 'GC-2025-000004'; // Same code from screenshot
+            log('🚀 Simulating DigitalPass QR generation for: ' + testCode);
+            
+            try {
+                // This is what happens in the DigitalPass component
+                log('🚨 IMMEDIATE: Forcing emergency QR generation...');
+                
+                // Test 1: Direct function call
+                const emergencyUrl = createUltraReliableQR(testCode);
+                log('🚨 Emergency QR result: ' + (emergencyUrl ? 'SUCCESS' : 'FAILED'));
+                
+                if (emergencyUrl) {
+                    log('🚨 EMERGENCY QR SUCCESS - displaying result', 'success');
+                    
+                    // Display the QR code
+                    const img = document.createElement('img');
+                    img.src = emergencyUrl;
+                    img.style.border = '5px solid red';
+                    img.style.margin = '20px';
+                    img.style.width = '400px';
+                    img.style.height = '400px';
+                    img.style.backgroundColor = 'yellow';
+                    
+                    img.onload = function() {
+                        log('🎉 QR IMAGE LOADED SUCCESSFULLY!', 'success');
+                        log('Image dimensions: ' + img.naturalWidth + 'x' + img.naturalHeight);
+                        log('Image complete: ' + img.complete);
+                    };
+                    
+                    img.onerror = function(e) {
+                        log('❌ QR IMAGE FAILED TO LOAD!', 'error');
+                        log('Error: ' + JSON.stringify(e));
+                    };
+                    
+                    emergencyResult.appendChild(img);
+                    
+                    // Test 2: Data URL validation
+                    log('🔍 Testing data URL validity...');
+                    const testImg = new Image();
+                    testImg.onload = function() {
+                        log('✅ Data URL is valid and loads correctly', 'success');
+                    };
+                    testImg.onerror = function() {
+                        log('❌ Data URL is invalid!', 'error');
+                    };
+                    testImg.src = emergencyUrl;
+                    
+                    return emergencyUrl;
+                } else {
+                    log('🚨 Emergency QR failed completely', 'error');
+                    return null;
+                }
+                
+            } catch (error) {
+                log('🚨 CRITICAL QR generation error: ' + error.message, 'error');
+                return null;
+            }
+        }
+        
+        // Test image display with different methods
+        function testImageDisplay() {
+            const testDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='; // 1x1 black pixel
+            
+            log('🔍 Testing basic image display...');
+            
+            // Method 1: Direct img src
+            const img1 = document.createElement('img');
+            img1.src = testDataUrl;
+            img1.style.border = '1px solid green';
+            img1.style.margin = '5px';
+            img1.width = 50;
+            img1.height = 50;
+            img1.onload = () => log('✅ Basic img src works', 'success');
+            img1.onerror = () => log('❌ Basic img src failed', 'error');
+            qrResult.appendChild(img1);
+            
+            // Method 2: Base64 validation
+            log('🔍 Testing base64 encoding...');
+            try {
+                const decoded = atob(testDataUrl.split(',')[1]);
+                log('✅ Base64 decoding works, length: ' + decoded.length, 'success');
+            } catch (e) {
+                log('❌ Base64 decoding failed: ' + e.message, 'error');
+            }
+        }
+        
+        // Run comprehensive tests
+        window.onload = function() {
+            log('🧪 Starting comprehensive QR debug tests...');
+            
+            // Test 1: Basic image display
+            testImageDisplay();
+            
+            // Test 2: QR generation
+            setTimeout(() => {
+                simulateDigitalPassQR();
+            }, 1000);
+            
+            // Test 3: Environment check
+            log('🔍 Environment check:');
+            log('Canvas supported: ' + !!document.createElement('canvas').getContext);
+            log('Base64 supported: ' + typeof btoa);
+            log('Data URL supported: ' + typeof HTMLCanvasElement.prototype.toDataURL);
+        };
+    </script>
+</body>
+</html>

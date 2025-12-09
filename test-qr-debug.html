@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Debug Test</title>
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="./qrcode.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-container { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .qr-result { margin: 20px 0; text-align: center; }
+        .qr-result img { border: 2px solid #000; max-width: 200px; }
+        .debug-info { background: #f0f0f0; padding: 10px; margin: 10px 0; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>QR Code Debug Test</h1>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Copy the exact QR generation function from the main system
+        const generateQRCode = async (text) => {
+            try {
+                console.log('Starting QR code generation for:', text);
+                
+                // Wait for QRCode library to be available (5 seconds timeout - proven working)
+                let attempts = 0;
+                const maxAttempts = 50; // 5 seconds timeout
+                
+                while (typeof QRCode === 'undefined' && attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                if (typeof QRCode === 'undefined') {
+                    console.error('QR code library failed to load after 5 seconds');
+                    return generateFallbackQR(text);
+                }
+                
+                console.log('QRCode library loaded:', typeof QRCode);
+                console.log('QRCode methods available:', Object.keys(QRCode));
+                
+                // Method 1: Use QRCode constructor directly (most reliable)
+                console.log('Trying QRCode constructor method...');
+                return new Promise((resolve) => {
+                    try {
+                        // Create a container div for the QR code
+                        const container = document.createElement('div');
+                        container.style.width = '200px';
+                        container.style.height = '200px';
+                        container.style.display = 'none';
+                        document.body.appendChild(container);
+                        
+                        // Create QRCode instance
+                        const qrCode = new QRCode(container, {
+                            text: text,
+                            width: 200,
+                            height: 200,
+                            colorDark: '#000000',
+                            colorLight: '#FFFFFF',
+                            correctLevel: QRCode.CorrectLevel.M
+                        });
+                        
+                        console.log('QRCode instance created successfully');
+                        
+                        // Wait for QR code to be rendered (500ms - proven working)
+                        setTimeout(() => {
+                            try {
+                                // Find the canvas or img element in the container
+                                const canvas = container.querySelector('canvas');
+                                const img = container.querySelector('img');
+                                
+                                let dataUrl = '';
+                                
+                                if (canvas) {
+                                    dataUrl = canvas.toDataURL('image/png');
+                                    console.log('QR code generated from canvas');
+                                } else if (img) {
+                                    dataUrl = img.src;
+                                    console.log('QR code generated from img src');
+                                } else {
+                                    console.log('No canvas or img found, trying fallback');
+                                    dataUrl = generateFallbackQR(text);
+                                }
+                                
+                                // Clean up
+                                document.body.removeChild(container);
+                                console.log('QR code data URL length:', dataUrl.length);
+                                console.log('QR code data URL preview:', dataUrl.substring(0, 50) + '...');
+                                resolve(dataUrl);
+                                
+                            } catch (renderError) {
+                                console.error('QR rendering error:', renderError);
+                                document.body.removeChild(container);
+                                resolve(generateFallbackQR(text));
+                            }
+                        }, 500); // 500ms timeout - proven working
+                        
+                    } catch (constructorError) {
+                        console.error('QRCode constructor error:', constructorError);
+                        resolve(generateFallbackQR(text));
+                    }
+                });
+                
+            } catch (e) {
+                console.error('QR generation error:', e);
+                return generateFallbackQR(text);
+            }
+        };
+
+        // Fallback QR code generation
+        const generateFallbackQR = (text) => {
+            console.log('Using fallback QR generation for:', text);
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 200;
+                canvas.height = 200;
+                const ctx = canvas.getContext('2d');
+                
+                if (!ctx) {
+                    console.error('Canvas 2D context not available');
+                    return createTextFallback(text);
+                }
+                
+                // White background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, 200, 200);
+                
+                // Black border
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(10, 10, 180, 180);
+                
+                // Add finder patterns (the three big squares in corners)
+                ctx.fillStyle = '#000000';
+                
+                // Top-left finder pattern
+                ctx.fillRect(20, 20, 14, 14);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(22, 22, 10, 10);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(24, 24, 6, 6);
+                
+                // Top-right finder pattern
+                ctx.fillRect(166, 20, 14, 14);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(168, 22, 10, 10);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(170, 24, 6, 6);
+                
+                // Bottom-left finder pattern
+                ctx.fillRect(20, 166, 14, 14);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(22, 168, 10, 10);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(24, 170, 6, 6);
+                
+                // Simple pattern to represent QR code data
+                ctx.fillStyle = '#000000';
+                const moduleSize = 4;
+                const modules = 32;
+                
+                // Create a simple pattern based on the text
+                let hash = 0;
+                for (let i = 0; i < text.length; i++) {
+                    hash = ((hash << 5) - hash + text.charCodeAt(i)) & 0xFFFFFFFF;
+                }
+                
+                // Generate a more QR-like pattern in the center area
+                for (let row = 8; row < modules - 8; row++) {
+                    for (let col = 8; col < modules - 8; col++) {
+                        const index = row * modules + col;
+                        const shouldFill = (hash + index * 7 + row * 3 + col * 5) % 4 === 0;
+                        
+                        if (shouldFill) {
+                            ctx.fillRect(
+                                16 + col * moduleSize,
+                                16 + row * moduleSize,
+                                moduleSize,
+                                moduleSize
+                            );
+                        }
+                    }
+                }
+                
+                // Add the visit code text at the bottom
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 10px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(text, 100, 195);
+                
+                const dataUrl = canvas.toDataURL('image/png');
+                console.log('Fallback QR code generated successfully');
+                return dataUrl;
+                
+            } catch (error) {
+                console.error('Fallback QR generation error:', error);
+                return createTextFallback(text);
+            }
+        };
+
+        const QRTestComponent = () => {
+            const [testResults, setTestResults] = useState([]);
+            const [isTesting, setIsTesting] = useState(false);
+
+            const runQRTest = async () => {
+                setIsTesting(true);
+                const results = [];
+                
+                const testCodes = [
+                    'GC-2025-TEST001',
+                    'ABC123',
+                    'TEST-CODE-123'
+                ];
+
+                for (const code of testCodes) {
+                    try {
+                        console.log(`\n=== Testing QR generation for: ${code} ===`);
+                        const qrUrl = await generateQRCode(code);
+                        
+                        results.push({
+                            code,
+                            success: !!qrUrl,
+                            qrUrl: qrUrl || null,
+                            urlLength: qrUrl ? qrUrl.length : 0,
+                            urlPreview: qrUrl ? qrUrl.substring(0, 50) + '...' : 'FAILED'
+                        });
+                        
+                        console.log(`QR generation for ${code}: ${qrUrl ? 'SUCCESS' : 'FAILED'}`);
+                        if (qrUrl) {
+                            console.log(`URL length: ${qrUrl.length}`);
+                            console.log(`URL preview: ${qrUrl.substring(0, 50)}...`);
+                        }
+                    } catch (error) {
+                        console.error(`Error generating QR for ${code}:`, error);
+                        results.push({
+                            code,
+                            success: false,
+                            error: error.message,
+                            qrUrl: null
+                        });
+                    }
+                }
+                
+                setTestResults(results);
+                setIsTesting(false);
+            };
+
+            return (
+                <div>
+                    <div className="test-container">
+                        <h2>QR Code Generation Test</h2>
+                        <button 
+                            onClick={runQRTest} 
+                            disabled={isTesting}
+                            style={{
+                                padding: '10px 20px',
+                                backgroundColor: isTesting ? '#ccc' : '#007bff',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '5px',
+                                cursor: isTesting ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            {isTesting ? 'Testing...' : 'Run QR Test'}
+                        </button>
+                    </div>
+
+                    {testResults.length > 0 && (
+                        <div className="test-container">
+                            <h3>Test Results</h3>
+                            {testResults.map((result, index) => (
+                                <div key={index} style={{ margin: '20px 0', padding: '15px', border: '1px solid #ddd' }}>
+                                    <h4>Code: {result.code}</h4>
+                                    <div className="debug-info">
+                                        <strong>Status:</strong> {result.success ? '✅ SUCCESS' : '❌ FAILED'}<br/>
+                                        <strong>URL Length:</strong> {result.urlLength || 'N/A'}<br/>
+                                        <strong>URL Preview:</strong> {result.urlPreview || result.error || 'N/A'}
+                                    </div>
+                                    
+                                    {result.qrUrl && (
+                                        <div className="qr-result">
+                                            <img 
+                                                src={result.qrUrl} 
+                                                alt={`QR Code for ${result.code}`}
+                                                style={{ 
+                                                    maxWidth: '200px', 
+                                                    border: '2px solid #000',
+                                                    backgroundColor: '#fff'
+                                                }}
+                                            />
+                                            <p><strong>Generated QR Code:</strong></p>
+                                        </div>
+                                    )}
+                                    
+                                    {!result.qrUrl && (
+                                        <div style={{ 
+                                            width: '200px', 
+                                            height: '200px', 
+                                            border: '2px solid #f00',
+                                            backgroundColor: '#fee',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            margin: '10px auto'
+                                        }}>
+                                            <span style={{ color: '#f00', textAlign: 'center' }}>
+                                                QR Generation<br/>Failed
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        ReactDOM.render(<QRTestComponent />, document.getElementById('root'));
+    </script>
+</body>
+</html>

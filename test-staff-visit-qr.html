@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Staff Visit QR Generation - Grand City HQ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- QR Code library -->
+    <script src="./qrcode.min.js"></script>
+    
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .pass-bg {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="gradient-bg min-h-screen py-8">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-white mb-2">Staff Visit QR Test</h1>
+                <p class="text-white opacity-90">Testing QR generation for staff-scheduled visits</p>
+            </div>
+
+            <!-- Test Controls -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Test Staff Visit QR Generation</h2>
+                
+                <!-- Simulate Staff Dashboard Visit Creation -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Visitor Name</label>
+                        <input type="text" id="visitor-name" value="ghf" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Company</label>
+                        <input type="text" id="visitor-company" value="Test Company" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Visit Code</label>
+                        <input type="text" id="visit-code" value="GC-2025-000004" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Executive</label>
+                        <select id="executive-id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            <option value="3">Khalid Noon - CEO</option>
+                            <option value="1">Salman Bin Waris Gillani - MD Partner</option>
+                            <option value="2">Rehan Bin Waris Gillani - Chairman Partner</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button onclick="createTestVisit()" class="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium mb-4">
+                    Create Test Visit & Generate QR
+                </button>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button onclick="testQRCode('GC-2025-000001')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Test QR Code 1
+                    </button>
+                    <button onclick="testQRCode('GC-2025-000005')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        Test QR Code 2
+                    </button>
+                    <button onclick="testQRCode('GC-2025-000010')" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                        Test QR Code 3
+                    </button>
+                </div>
+            </div>
+
+            <!-- Test Results -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Test Results</h2>
+                <div id="test-results" class="space-y-4">
+                    <div class="text-gray-500 text-center py-8">
+                        Click "Create Test Visit & Generate QR" to test staff visit QR generation
+                    </div>
+                </div>
+            </div>
+
+            <!-- Digital Pass Preview -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Digital Pass Preview</h2>
+                <div class="flex justify-center">
+                    <div id="digital-pass-preview" class="pass-bg rounded-lg p-6 text-white max-w-sm w-full">
+                        <div class="text-center mb-4">
+                            <h3 class="text-lg font-bold">GRAND CITY HQ</h3>
+                            <p class="text-sm opacity-90">GUEST PASS</p>
+                        </div>
+                        
+                        <div id="pass-qr-container" class="bg-white rounded-lg p-4 mb-4 flex justify-center">
+                            <div class="w-32 h-32 bg-gray-200 rounded flex items-center justify-center">
+                                <span class="text-gray-500 text-xs">QR Code</span>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="opacity-75">Visitor:</span>
+                                <span class="font-semibold" id="preview-visitor">ghf</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="opacity-75">Code:</span>
+                                <span class="font-mono font-bold" id="preview-code">GC-2025-000004</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="opacity-75">Date:</span>
+                                <span id="preview-date">Dec 7, 2025</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="opacity-75">Time:</span>
+                                <span id="preview-time">09:00 - 10:00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="opacity-75">Executive:</span>
+                                <span class="font-semibold" id="preview-executive">Khalid Noon</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 text-center">
+                            <div class="text-xs opacity-75 mb-1">Status</div>
+                            <div class="inline-block px-3 py-1 bg-orange-500 text-white text-xs rounded-full">
+                                PENDING APPROVAL
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Console Output -->
+            <div class="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-green-300 font-semibold">Console Output</h3>
+                    <button onclick="clearConsole()" class="text-green-300 hover:text-green-200 text-xs">Clear</button>
+                </div>
+                <div id="console-output" class="max-h-40 overflow-y-auto">
+                    <div class="text-gray-400">Ready for testing...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced logging function
+        function log(message, type = 'info') {
+            const consoleOutput = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const colorClass = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-green-400' : 'text-green-400';
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            
+            consoleOutput.innerHTML += `<div class="${colorClass}">${prefix} [${timestamp}] ${message}</div>`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            
+            // Also log to browser console
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        // Simulate the exact visit creation from Staff Dashboard
+        function createTestVisit() {
+            log('=== Creating Test Staff Visit ===', 'info');
+            
+            // Get form values
+            const visitorName = document.getElementById('visitor-name').value;
+            const visitorCompany = document.getElementById('visitor-company').value;
+            const visitCode = document.getElementById('visit-code').value;
+            const executiveId = parseInt(document.getElementById('executive-id').value);
+            
+            log(`Visitor: ${visitorName} from ${visitorCompany}`, 'info');
+            log(`Visit Code: ${visitCode}`, 'info');
+            log(`Executive ID: ${executiveId}`, 'info');
+            
+            // Create visit object exactly like StaffDashboard
+            const visit = {
+                id: Date.now(),
+                code: visitCode,
+                visitor: {
+                    name: visitorName,
+                    company: visitorCompany,
+                    phone: '0300-1234567',
+                    email: 'test@example.com'
+                },
+                executiveId: executiveId,
+                purpose: 'Business Meeting',
+                date: new Date().toISOString().split('T')[0],
+                timeFrom: '09:00',
+                timeTo: '10:00',
+                status: 'scheduled',
+                approval: 'pending',
+                type: 'scheduled',
+                createdAt: new Date().toISOString()
+            };
+            
+            log('Visit object created:', 'info');
+            log(JSON.stringify(visit, null, 2), 'info');
+            
+            // Update preview
+            document.getElementById('preview-visitor').textContent = visitorName;
+            document.getElementById('preview-code').textContent = visitCode;
+            document.getElementById('preview-date').textContent = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('preview-time').textContent = '09:00 - 10:00';
+            
+            const executives = {
+                1: 'Salman Bin Waris Gillani',
+                2: 'Rehan Bin Waris Gillani', 
+                3: 'Khalid Noon'
+            };
+            document.getElementById('preview-executive').textContent = executives[executiveId] || 'Khalid Noon';
+            
+            // Generate QR code
+            generateQRCodeForVisit(visit);
+        }
+
+        // Test QR code generation directly
+        async function testQRCode(code) {
+            log(`=== Testing QR Code Generation: ${code} ===`, 'info');
+            
+            const visit = {
+                code: code,
+                visitor: { name: 'Test Visitor', company: 'Test Company' },
+                executiveId: 3,
+                date: new Date().toISOString().split('T')[0],
+                timeFrom: '09:00',
+                timeTo: '10:00'
+            };
+            
+            generateQRCodeForVisit(visit);
+        }
+
+        // Generate QR code using the same function as main system
+        async function generateQRCodeForVisit(visit) {
+            const qrContainer = document.getElementById('pass-qr-container');
+            qrContainer.innerHTML = '<div class="w-32 h-32 bg-gray-200 rounded flex items-center justify-center"><span class="text-gray-500 text-xs">Generating...</span></div>';
+            
+            log('Starting QR code generation...', 'info');
+            log(`Visit code: ${visit.code}`, 'info');
+            log(`Visit code type: ${typeof visit.code}`, 'info');
+            log(`Visit code length: ${visit.code?.length}`, 'info');
+            
+            try {
+                // Wait for QRCode library to be available
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                while (typeof QRCode === 'undefined' && attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                if (typeof QRCode === 'undefined') {
+                    log('QR code library failed to load after 5 seconds', 'error');
+                    qrContainer.innerHTML = '<div class="w-32 h-32 bg-red-100 rounded flex items-center justify-center text-red-600 text-xs">Library Failed</div>';
+                    return;
+                }
+                
+                log(`QRCode library loaded: ${typeof QRCode}`, 'success');
+                log(`QRCode methods available: ${Object.keys(QRCode).join(', ')}`, 'info');
+                
+                // Method 1: Use QRCode constructor directly
+                log('Trying QRCode constructor method...', 'info');
+                
+                return new Promise((resolve) => {
+                    try {
+                        // Create a container div for the QR code
+                        const container = document.createElement('div');
+                        container.style.width = '128px';
+                        container.style.height = '128px';
+                        container.style.display = 'none';
+                        document.body.appendChild(container);
+                        
+                        // Create QRCode instance
+                        const qrCode = new QRCode(container, {
+                            text: visit.code,
+                            width: 128,
+                            height: 128,
+                            colorDark: '#000000',
+                            colorLight: '#FFFFFF',
+                            correctLevel: QRCode.CorrectLevel.M
+                        });
+                        
+                        log('QRCode instance created successfully', 'success');
+                        
+                        // Wait for QR code to be rendered
+                        setTimeout(() => {
+                            try {
+                                // Find the canvas or img element in the container
+                                const canvas = container.querySelector('canvas');
+                                const img = container.querySelector('img');
+                                
+                                let dataUrl = '';
+                                
+                                if (canvas) {
+                                    dataUrl = canvas.toDataURL('image/png');
+                                    log('QR code generated from canvas', 'success');
+                                } else if (img) {
+                                    dataUrl = img.src;
+                                    log('QR code generated from img src', 'success');
+                                } else {
+                                    log('No canvas or img found, trying fallback', 'error');
+                                    dataUrl = generateFallbackQR(visit.code);
+                                }
+                                
+                                // Update the display
+                                if (dataUrl) {
+                                    qrContainer.innerHTML = `<img src="${dataUrl}" alt="QR Code" class="w-32 h-32">`;
+                                    log(`QR code data URL length: ${dataUrl.length}`, 'success');
+                                    log(`QR code data URL preview: ${dataUrl.substring(0, 50)}...`, 'info');
+                                } else {
+                                    qrContainer.innerHTML = '<div class="w-32 h-32 bg-red-100 rounded flex items-center justify-center text-red-600 text-xs">Failed</div>';
+                                    log('QR generation failed', 'error');
+                                }
+                                
+                                // Clean up
+                                document.body.removeChild(container);
+                                resolve(dataUrl);
+                                
+                            } catch (renderError) {
+                                log(`QR rendering error: ${renderError.message}`, 'error');
+                                document.body.removeChild(container);
+                                qrContainer.innerHTML = '<div class="w-32 h-32 bg-red-100 rounded flex items-center justify-center text-red-600 text-xs">Render Error</div>';
+                                resolve('');
+                            }
+                        }, 500);
+                        
+                    } catch (constructorError) {
+                        log(`QRCode constructor error: ${constructorError.message}`, 'error');
+                        qrContainer.innerHTML = '<div class="w-32 h-32 bg-red-100 rounded flex items-center justify-center text-red-600 text-xs">Constructor Error</div>';
+                        resolve('');
+                    }
+                });
+                
+            } catch (e) {
+                log(`QR generation error: ${e.message}`, 'error');
+                qrContainer.innerHTML = '<div class="w-32 h-32 bg-red-100 rounded flex items-center justify-center text-red-600 text-xs">Error</div>';
+            }
+        }
+
+        // Fallback QR generation
+        function generateFallbackQR(text) {
+            log('Using fallback QR generation', 'warning');
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 128;
+                canvas.height = 128;
+                const ctx = canvas.getContext('2d');
+                
+                if (!ctx) {
+                    log('Canvas 2D context not available', 'error');
+                    return '';
+                }
+                
+                // White background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, 128, 128);
+                
+                // Black border
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(10, 10, 108, 108);
+                
+                // Add finder patterns
+                ctx.fillStyle = '#000000';
+                
+                // Top-left finder pattern
+                ctx.fillRect(20, 20, 10, 10);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(22, 22, 6, 6);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(24, 24, 2, 2);
+                
+                // Top-right finder pattern
+                ctx.fillRect(98, 20, 10, 10);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(100, 22, 6, 6);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(102, 24, 2, 2);
+                
+                // Bottom-left finder pattern
+                ctx.fillRect(20, 98, 10, 10);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(22, 100, 6, 6);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(24, 102, 2, 2);
+                
+                // Simple pattern
+                ctx.fillStyle = '#000000';
+                for (let i = 0; i < 20; i++) {
+                    const x = 30 + (i % 5) * 8;
+                    const y = 30 + Math.floor(i / 5) * 8;
+                    if ((i + text.length) % 3 === 0) {
+                        ctx.fillRect(x, y, 4, 4);
+                    }
+                }
+                
+                const dataUrl = canvas.toDataURL('image/png');
+                log('Fallback QR code generated successfully', 'success');
+                return dataUrl;
+                
+            } catch (error) {
+                log(`Fallback QR generation error: ${error.message}`, 'error');
+                return '';
+            }
+        }
+
+        function clearConsole() {
+            document.getElementById('console-output').innerHTML = '<div class="text-gray-400">Console cleared...</div>';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Staff Visit QR Test System initialized', 'info');
+            log('QRCode library status: ' + (typeof QRCode !== 'undefined' ? 'Loaded' : 'Not loaded'), 'info');
+        });
+    </script>
+</body>
+</html>
