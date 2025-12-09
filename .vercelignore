@@ -44,7 +44,11 @@ server.js
 server-prod.js
 server-shared-prod.js
 shared-server.js
-config/database.js
+
+# Keep API serverless functions
+!api/visits.js
+!api/executives.js
+!api/visits/
 
 # Test HTML files
 test-*.html

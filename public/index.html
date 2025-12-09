@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; img-src 'self' data: blob:; connect-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;">
     <title>Grand City HQ - Guest Pass Management System</title>
+    
     <!-- React and Babel from local files -->
     <script src="./react.production.min.js"></script>
     <script src="./react-dom.production.min.js"></script>
@@ -178,8 +179,9 @@
                         company: v.visitor_company
                     },
                     executiveId: v.executive_id,
+                    executiveName: v.executive_name,
                     purpose: v.purpose,
-                    date: v.date, // Date is already in YYYY-MM-DD format from server
+                    date: v.date,
                     timeFrom: v.time_from,
                     timeTo: v.time_to,
                     status: v.status,
