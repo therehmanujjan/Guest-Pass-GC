@@ -55,6 +55,9 @@ module.exports = async (req, res) => {
       // Create new visit
       const { visitor, executive_id, date, time_from, time_to, purpose, visit_type = 'scheduled' } = req.body;
 
+      // Validate and sanitize executive_id (convert empty string to null)
+      const sanitizedExecutiveId = executive_id && executive_id.trim() !== '' ? executive_id : null;
+
       // Start transaction
       const client = await pool.connect();
       try {
@@ -95,7 +98,7 @@ module.exports = async (req, res) => {
         const visitResult = await client.query(
           `INSERT INTO visits (visit_code, visitor_id, executive_id, scheduled_date, scheduled_time_from, scheduled_time_to, purpose_of_visit, visit_type, visit_status, approval_status)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-          [visitCode, visitorId, executive_id, date, time_from, time_to, purpose, visit_type, 'scheduled', 'pending']
+          [visitCode, visitorId, sanitizedExecutiveId, date, time_from, time_to, purpose, visit_type, 'scheduled', 'pending']
         );
 
         await client.query('COMMIT');
