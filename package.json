@@ -39,10 +39,13 @@
   "author": "Guest Pass System Team",
   "license": "MIT",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "html2canvas": "^1.4.1",
+    "jsonwebtoken": "^9.0.3",
     "jsqr": "^1.4.0",
+    "node-fetch": "^2.7.0",
     "pg": "^8.16.3",
     "qrcode": "^1.5.3",
     "react": "^18.2.0",

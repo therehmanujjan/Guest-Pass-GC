@@ -1,10 +1,14 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const db = require('./config/database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_EXPIRES_IN = '24h';
 
 // Middleware
 app.use(express.json());
@@ -23,6 +27,158 @@ app.use((req, res, next) => {
   }
   
   next();
+});
+
+// === AUTHENTICATION MIDDLEWARE ===
+
+// Verify JWT token
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Invalid or expired token' });
+    }
+    req.user = user; // Add user info to request
+    next();
+  });
+};
+
+// === API ENDPOINTS ===
+
+// Login endpoint
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  try {
+    // Get user from database
+    const result = await db.query(
+      `SELECT u.id, u.email, u.full_name, u.role, u.password_hash, u.is_active,
+              u.failed_login_attempts, u.account_locked_until,
+              e.id as executive_id, e.position
+       FROM users u
+       LEFT JOIN executives e ON u.id = e.user_id
+       WHERE u.email = $1`,
+      [email.toLowerCase()]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const user = result.rows[0];
+
+    // Check if account is active
+    if (!user.is_active) {
+      return res.status(403).json({ error: 'Account is disabled' });
+    }
+
+    // Check if account is locked
+    if (user.account_locked_until && new Date(user.account_locked_until) > new Date()) {
+      return res.status(403).json({ 
+        error: 'Account is locked. Please try again later.',
+        lockedUntil: user.account_locked_until
+      });
+    }
+
+    // Verify password
+    if (!user.password_hash) {
+      return res.status(401).json({ error: 'Password not set for this account' });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+
+    if (!passwordMatch) {
+      // Increment failed login attempts
+      const failedAttempts = (user.failed_login_attempts || 0) + 1;
+      const lockAccount = failedAttempts >= 5;
+      
+      if (lockAccount) {
+        const lockUntil = new Date(Date.now() + 30 * 60 * 1000); // Lock for 30 minutes
+        await db.query(
+          `UPDATE users 
+           SET failed_login_attempts = $1, account_locked_until = $2 
+           WHERE id = $3`,
+          [failedAttempts, lockUntil, user.id]
+        );
+        return res.status(403).json({ 
+          error: 'Account locked due to multiple failed login attempts',
+          lockedUntil: lockUntil
+        });
+      } else {
+        await db.query(
+          'UPDATE users SET failed_login_attempts = $1 WHERE id = $2',
+          [failedAttempts, user.id]
+        );
+        return res.status(401).json({ 
+          error: 'Invalid email or password',
+          attemptsRemaining: 5 - failedAttempts
+        });
+      }
+    }
+
+    // Successful login - reset failed attempts and update last login
+    await db.query(
+      `UPDATE users 
+       SET failed_login_attempts = 0, 
+           account_locked_until = NULL, 
+           last_login_at = NOW() 
+       WHERE id = $1`,
+      [user.id]
+    );
+
+    // Generate JWT token
+    const tokenPayload = {
+      id: user.id,
+      email: user.email,
+      name: user.full_name,
+      role: user.role,
+      executiveId: user.executive_id,
+      position: user.position
+    };
+
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.full_name,
+        role: user.role,
+        executiveId: user.executive_id,
+        position: user.position
+      }
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed', details: error.message });
+  }
+});
+
+// Logout endpoint (client-side token removal, but we can log it)
+app.post('/api/logout', authenticateToken, async (req, res) => {
+  // In a more advanced implementation, you could invalidate the token in a blacklist
+  res.json({ success: true, message: 'Logged out successfully' });
+});
+
+// Verify token endpoint (check if current token is valid)
+app.get('/api/auth/verify', authenticateToken, (req, res) => {
+  res.json({ 
+    valid: true, 
+    user: req.user 
+  });
 });
 
 // === API ENDPOINTS ===
@@ -46,7 +202,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Get all visits
-app.get('/api/visits', async (req, res) => {
+app.get('/api/visits', authenticateToken, async (req, res) => {
   try {
     const result = await db.query(`
       SELECT v.id,
@@ -81,7 +237,7 @@ app.get('/api/visits', async (req, res) => {
   }
 });
 
-// Get executives
+// Get executives (public endpoint - needed for login screen)
 app.get('/api/executives', async (req, res) => {
   try {
     const result = await db.query(`
@@ -99,7 +255,7 @@ app.get('/api/executives', async (req, res) => {
 });
 
 // Generate next visit code
-app.get('/api/visits/generate-code', async (req, res) => {
+app.get('/api/visits/generate-code', authenticateToken, async (req, res) => {
   try {
     const year = new Date().getFullYear();
     
@@ -135,7 +291,7 @@ app.get('/api/visits/generate-code', async (req, res) => {
 });
 
 // Create new visit
-app.post('/api/visits', async (req, res) => {
+app.post('/api/visits', authenticateToken, async (req, res) => {
   let { visitor, executive_id, date, time_from, time_to, purpose, visit_type = 'scheduled' } = req.body;
   
   console.log('Creating visit with data:', { visitor, executive_id, date, time_from, time_to, purpose, visit_type });
@@ -228,7 +384,7 @@ app.post('/api/visits', async (req, res) => {
 });
 
 // Update visit (for approvals, status changes, etc.)
-app.put('/api/visits/:id', async (req, res) => {
+app.put('/api/visits/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const updates = req.body;
 
@@ -353,7 +509,7 @@ app.post('/api/visits/validate', async (req, res) => {
 });
 
 // Check-in visitor
-app.post('/api/visits/:id/checkin', async (req, res) => {
+app.post('/api/visits/:id/checkin', authenticateToken, async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -378,7 +534,7 @@ app.post('/api/visits/:id/checkin', async (req, res) => {
 });
 
 // Check-out visitor
-app.post('/api/visits/:id/checkout', async (req, res) => {
+app.post('/api/visits/:id/checkout', authenticateToken, async (req, res) => {
   const { id } = req.params;
 
   try {
